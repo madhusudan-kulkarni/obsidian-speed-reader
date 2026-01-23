@@ -1,36 +1,46 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import { App, PluginSettingTab, Setting } from 'obsidian';
+import type SpeedReaderPlugin from './main';
+import type { SpeedReaderSettings } from './types';
+import { DEFAULT_SETTINGS } from './types';
 
-export interface MyPluginSettings {
-	mySetting: string;
-}
+export { DEFAULT_SETTINGS };
+export type { SpeedReaderSettings };
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+export class SpeedReaderSettingTab extends PluginSettingTab {
+	plugin: SpeedReaderPlugin;
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: SpeedReaderPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		const { containerEl } = this;
 
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+			.setName('Reading speed')
+			.setDesc('Set your reading speed in words per minute.')
+			.addSlider(slider => slider
+				.setLimits(100, 1000, 25)
+				.setValue(this.plugin.settings.wpm)
+				.setDynamicTooltip()
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.wpm = value;
 					await this.plugin.saveSettings();
+				}))
+			.addText(text => text
+				.setValue(String(this.plugin.settings.wpm))
+				.onChange(async (value) => {
+					const numValue = parseInt(value, 10);
+					if (!isNaN(numValue) && numValue >= 100 && numValue <= 1000) {
+						this.plugin.settings.wpm = numValue;
+						await this.plugin.saveSettings();
+					}
 				}));
+
+		new Setting(containerEl)
+			.setDesc('Start with 200-300 words per minute and gradually increase.');
 	}
 }

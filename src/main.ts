@@ -1,99 +1,94 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { MarkdownView, Notice, Plugin } from 'obsidian';
+import { DEFAULT_SETTINGS, SpeedReaderSettings, SpeedReaderSettingTab } from './settings';
+import { SpeedReaderModal } from './speedReaderModal';
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class SpeedReaderPlugin extends Plugin {
+	settings!: SpeedReaderSettings;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
+		// Add ribbon icon for quick access
+		this.addRibbonIcon('book-open', 'Speed read current note', () => {
+			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (view) {
+				this.startSpeedReading(view);
+			} else {
+				new Notice('Open a note first');
 			}
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
+
+		// Command: Start speed reading
 		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
+			id: 'start-speed-reading',
+			name: 'Start speed reading',
 			checkCallback: (checking: boolean) => {
-				// Conditions to check
 				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
 					if (!checking) {
-						new SampleModal(this.app).open();
+						this.startSpeedReading(markdownView);
 					}
-
-					// This command will only show up in Command Palette when the check function returns true
 					return true;
 				}
 				return false;
 			}
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
+		// Command: Speed read selection
+		this.addCommand({
+			id: 'speed-read-selection',
+			name: 'Speed read selected text',
+			editorCheckCallback: (checking, editor) => {
+				const selection = editor.getSelection();
+				if (selection && selection.length > 0) {
+					if (!checking) {
+						this.openSpeedReader(selection);
+					}
+					return true;
+				}
+				return false;
+			}
 		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
+		this.addSettingTab(new SpeedReaderSettingTab(this.app, this));
 	}
 
-	onunload() {
-	}
+	onunload() { }
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<SpeedReaderSettings>);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
+	private startSpeedReading(view: MarkdownView) {
+		const editor = view.editor;
+		let text = editor.getSelection();
+
+		if (!text || text.length === 0) {
+			text = editor.getValue();
+		}
+
+		if (!text || text.trim().length === 0) {
+			new Notice('No text to speed read');
+			return;
+		}
+
+		this.openSpeedReader(text);
 	}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+	private openSpeedReader(text: string) {
+		const modal = new SpeedReaderModal(
+			this.app,
+			text,
+			this.settings,
+			(newWpm) => {
+				this.settings.wpm = newWpm;
+				void this.saveSettings();
+			}
+		);
+		modal.open();
 	}
 }

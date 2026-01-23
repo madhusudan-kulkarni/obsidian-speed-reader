@@ -1,8 +1,435 @@
-/*
+/* ==============================================
+   Speed Reader Plugin Styles
+   ============================================== */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* Modal container with accent glow border */
+.speed-reader-modal {
+	--modal-width: 95vw;
+	--modal-max-width: 780px;
+}
 
-If your plugin does not need CSS, delete this file.
+.speed-reader-modal .modal {
+	border: 2px solid var(--interactive-accent);
+	box-shadow:
+		0 0 30px color-mix(in srgb, var(--interactive-accent) 35%, transparent),
+		0 0 60px color-mix(in srgb, var(--interactive-accent) 20%, transparent),
+		0 12px 40px rgba(0, 0, 0, 0.4);
+}
 
-*/
+.speed-reader-modal .modal-content {
+	padding: 0;
+	overflow: hidden;
+}
+
+.speed-reader-content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 360px;
+	padding: 2.5rem 2.5rem 2rem;
+	background: var(--modal-background);
+	gap: 1.5rem;
+	overflow: hidden;
+}
+
+/* ==============================================
+   Word Display Area
+   ============================================== */
+
+.speed-reader-word-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 160px;
+	position: relative;
+	padding: 2rem 1.5rem;
+	background: color-mix(in srgb, var(--background-primary-alt) 40%, transparent);
+	border-radius: var(--radius-l);
+}
+
+/* Center guide line */
+.speed-reader-word-container::before {
+	content: '';
+	position: absolute;
+	top: 20%;
+	bottom: 20%;
+	left: 50%;
+	width: 2px;
+	background: linear-gradient(to bottom,
+			transparent 0%,
+			var(--interactive-accent) 30%,
+			var(--interactive-accent) 70%,
+			transparent 100%);
+	opacity: 0.3;
+	border-radius: 1px;
+}
+
+/* Top triangle marker */
+.speed-reader-word-container::after {
+	content: '';
+	position: absolute;
+	top: 10%;
+	left: 50%;
+	transform: translateX(-50%);
+	border-left: 6px solid transparent;
+	border-right: 6px solid transparent;
+	border-top: 6px solid var(--interactive-accent);
+	opacity: 0.8;
+}
+
+.speed-reader-word {
+	display: flex;
+	align-items: baseline;
+	font-family: var(--font-text);
+	font-size: clamp(2.5rem, 8vw, 4rem);
+	font-weight: 500;
+	color: var(--text-normal);
+	letter-spacing: 0.02em;
+	animation: speed-reader-word-appear 0.05s ease-out;
+}
+
+@keyframes speed-reader-word-appear {
+	from {
+		opacity: 0.5;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+.speed-reader-left {
+	text-align: right;
+	min-width: clamp(100px, 30vw, 250px);
+	color: var(--text-muted);
+}
+
+.speed-reader-orp {
+	color: var(--interactive-accent);
+	font-weight: 700;
+}
+
+.speed-reader-right {
+	text-align: left;
+	min-width: clamp(100px, 30vw, 250px);
+	color: var(--text-muted);
+}
+
+/* ==============================================
+   Controls Bar (Play, Speed, Progress)
+   ============================================== */
+
+.speed-reader-stats {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1.25rem;
+	font-family: var(--font-ui);
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	width: 100%;
+	max-width: 500px;
+}
+
+/* Play/Pause Button */
+.speed-reader-play-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0;
+	font-size: 1rem;
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	border: none;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+	box-shadow: 0 2px 8px color-mix(in srgb, var(--interactive-accent) 40%, transparent);
+}
+
+.speed-reader-play-btn:hover {
+	transform: scale(1.08);
+	box-shadow: 0 4px 12px color-mix(in srgb, var(--interactive-accent) 50%, transparent);
+}
+
+.speed-reader-play-btn:active {
+	transform: scale(0.95);
+}
+
+/* Speed Control */
+.speed-reader-speed-control {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.4rem 0.75rem;
+	background: var(--background-secondary);
+	border-radius: var(--radius-m);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.speed-reader-speed-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	padding: 0;
+	font-size: 1rem;
+	font-weight: 600;
+	line-height: 1;
+	color: var(--text-muted);
+	background: transparent;
+	border: none;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	transition: color 0.15s ease, background 0.15s ease;
+}
+
+.speed-reader-speed-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.speed-reader-speed-btn:active {
+	transform: scale(0.9);
+}
+
+.speed-reader-wpm {
+	color: var(--interactive-accent);
+	font-weight: 600;
+	font-size: 1rem;
+	min-width: 2rem;
+	text-align: center;
+}
+
+.speed-reader-wpm-label {
+	color: var(--text-faint);
+	font-size: 0.7rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+
+/* Progress info */
+.speed-reader-progress-info {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: var(--text-faint);
+	font-size: 0.8rem;
+}
+
+.speed-reader-separator {
+	opacity: 0.4;
+}
+
+.speed-reader-count {
+	color: var(--text-normal);
+	font-weight: 500;
+}
+
+.speed-reader-time {
+	color: var(--text-faint);
+}
+
+/* ==============================================
+   Progress Bar
+   ============================================== */
+
+.speed-reader-progress-bar {
+	width: 100%;
+	max-width: 500px;
+	height: 4px;
+	background: var(--background-modifier-border);
+	border-radius: 2px;
+	cursor: pointer;
+	overflow: visible;
+	position: relative;
+	transition: height 0.15s ease;
+}
+
+.speed-reader-progress-bar:hover {
+	height: 6px;
+}
+
+.speed-reader-progress-fill {
+	height: 100%;
+	background: var(--interactive-accent);
+	border-radius: 2px;
+	transition: width 0.1s ease-out;
+	position: relative;
+}
+
+.speed-reader-progress-fill::after {
+	content: '';
+	position: absolute;
+	right: -6px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 12px;
+	height: 12px;
+	background: var(--interactive-accent);
+	border: 2px solid var(--background-primary);
+	border-radius: 50%;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+	opacity: 0;
+	transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.speed-reader-progress-bar:hover .speed-reader-progress-fill::after {
+	opacity: 1;
+}
+
+/* ==============================================
+   Keyboard Hints (hidden by default, show on hover)
+   ============================================== */
+
+.speed-reader-controls {
+	font-family: var(--font-ui);
+	font-size: 0.75rem;
+	color: var(--text-faint);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.speed-reader-content:hover .speed-reader-controls {
+	opacity: 0.6;
+}
+
+.speed-reader-controls:hover {
+	opacity: 1 !important;
+}
+
+.speed-reader-controls kbd {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.2em;
+	padding: 0.1rem 0.3rem;
+	font-family: var(--font-monospace);
+	font-size: 0.65rem;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 3px;
+	margin-right: 0.2rem;
+}
+
+/* ==============================================
+   Focus Mode
+   ============================================== */
+
+.speed-reader-stats,
+.speed-reader-progress-bar,
+.speed-reader-controls,
+.speed-reader-word-container::before,
+.speed-reader-word-container::after {
+	transition: opacity 0.3s ease;
+}
+
+.speed-reader-focus-active .speed-reader-stats,
+.speed-reader-focus-active .speed-reader-progress-bar {
+	opacity: 0.05;
+	pointer-events: none;
+}
+
+.speed-reader-focus-active .speed-reader-controls {
+	opacity: 0.2;
+}
+
+.speed-reader-focus-active .speed-reader-word-container {
+	background: transparent;
+	border-color: transparent;
+}
+
+.speed-reader-focus-active .speed-reader-word-container::before,
+.speed-reader-focus-active .speed-reader-word-container::after {
+	opacity: 0.1;
+}
+
+.speed-reader-focus-label {
+	color: var(--interactive-accent);
+	font-weight: 500;
+}
+
+/* ==============================================
+   Done State
+   ============================================== */
+
+.speed-reader-done {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	animation: speed-reader-done-appear 0.4s ease;
+}
+
+.speed-reader-done-icon {
+	font-size: 3rem;
+	color: var(--text-success);
+	line-height: 1;
+}
+
+.speed-reader-done-text {
+	font-size: 1.1rem;
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+@keyframes speed-reader-done-appear {
+	0% {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+
+	50% {
+		transform: scale(1.05);
+	}
+
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* ==============================================
+   Responsive
+   ============================================== */
+
+@media (max-width: 600px) {
+	.speed-reader-content {
+		padding: 1.5rem 1rem 1rem;
+		min-height: 300px;
+		gap: 1rem;
+	}
+
+	.speed-reader-word-container {
+		min-height: 120px;
+		padding: 1rem;
+	}
+
+	.speed-reader-stats {
+		gap: 0.75rem;
+	}
+
+	.speed-reader-play-btn {
+		width: 2.25rem;
+		height: 2.25rem;
+	}
+
+	.speed-reader-controls {
+		display: none;
+	}
+
+	.speed-reader-word-container::after {
+		border-left-width: 5px;
+		border-right-width: 5px;
+		border-top-width: 5px;
+	}
+}
