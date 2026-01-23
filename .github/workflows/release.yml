@@ -1,0 +1,42 @@
+name: Release Plugin
+
+on:
+  push:
+    tags:
+      - "*" # Triggers whenever you push a tag (e.g., 1.0.1, 1.1.0)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    # "Proven Solution": Explicitly request write access to create releases
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Plugin
+        run: npm run build
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          prerelease: false
+          files: |
+            main.js
+            manifest.json
+            styles.css
