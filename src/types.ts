@@ -1,28 +1,72 @@
-/**
- * Represents a processed word with RSVP metadata
- */
 export interface WordData {
-    /** The word text for display (punctuation stripped) */
-    word: string;
-    /** Index of the Optimal Recognition Point (middle letter) */
-    orpIndex: number;
-    /** Delay multiplier based on punctuation/length (1.0, 1.2, 1.5, or 2.0) */
-    delayMultiplier: number;
-    /** Trailing punctuation to show after the word */
-    punctuation: string;
+	raw: string;
+	word: string;
+	punctuation: string;
+	orpIndex: number;
+	start: number;
+	end: number;
 }
 
-/**
- * Plugin settings interface
- */
+export interface HeadingInfo {
+	level: number;
+	text: string;
+	wordIndex: number;
+}
+
 export interface SpeedReaderSettings {
-    /** Words per minute reading speed */
-    wpm: number;
+	wpm: number;
+	chunkSize: number;
+	showContext: boolean;
+	contextWords: number;
+	showProgress: boolean;
+	showStats: boolean;
+	enableMicropause: boolean;
+	micropauseSentence: number;
+	micropauseClause: number;
+	micropauseNumbers: number;
+	micropauseLongWords: number;
+	micropauseParagraph: number;
+	micropauseHeading: number;
+	enableSlowStart: boolean;
+	enableAcceleration: boolean;
+	accelerationDuration: number;
+	accelerationTargetWpm: number;
 }
 
-/**
- * Default plugin settings
- */
+export interface ReaderState {
+	chunk: WordData[];
+	currentIndex: number;
+	totalWords: number;
+	progress: number;
+	isPlaying: boolean;
+	finished: boolean;
+	currentWpm: number;
+	timeRemainingMs: number;
+	currentHeading: HeadingInfo | null;
+}
+
+export interface ParsedDocument {
+	words: WordData[];
+	headings: HeadingInfo[];
+	startWordIndex: number;
+}
+
 export const DEFAULT_SETTINGS: SpeedReaderSettings = {
-    wpm: 300
+	wpm: 300,
+	chunkSize: 1,
+	showContext: false,
+	contextWords: 3,
+	showProgress: true,
+	showStats: true,
+	enableMicropause: true,
+	micropauseSentence: 2.0,
+	micropauseClause: 1.5,
+	micropauseNumbers: 1.8,
+	micropauseLongWords: 1.2,
+	micropauseParagraph: 2.2,
+	micropauseHeading: 1.8,
+	enableSlowStart: true,
+	enableAcceleration: false,
+	accelerationDuration: 30,
+	accelerationTargetWpm: 500
 };
