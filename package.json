@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-speed-reader",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "RSVP-based speed reading for your notes - flash one word at a time with optimal recognition point highlighting.",
 	"main": "main.js",
 	"type": "module",
