@@ -85,7 +85,7 @@
 	gap: 0.45rem;
 	flex-wrap: wrap;
 	font-family: var(--font-text);
-	font-size: clamp(2.5rem, 8vw, 4rem);
+	font-size: var(--speed-reader-font-size, clamp(2.5rem, 8vw, 4rem));
 	font-weight: 500;
 	color: var(--text-normal);
 	letter-spacing: 0.02em;
@@ -109,7 +109,7 @@
 
 .speed-reader-left {
 	text-align: right;
-	min-width: clamp(50px, 15vw, 180px);
+	min-width: calc(var(--speed-reader-font-size, 4rem) * 1.5);
 	color: var(--text-muted);
 }
 
@@ -120,7 +120,7 @@
 
 .speed-reader-right {
 	text-align: left;
-	min-width: clamp(50px, 15vw, 180px);
+	min-width: calc(var(--speed-reader-font-size, 4rem) * 1.5);
 	color: var(--text-muted);
 }
 
@@ -470,6 +470,7 @@
 	.speed-reader-word-container {
 		min-height: 120px;
 		padding: 1rem;
+		--speed-reader-font-size: clamp(2rem, 6vw, 3rem);
 	}
 
 	.speed-reader-stats {
