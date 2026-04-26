@@ -114,7 +114,7 @@
 }
 
 .speed-reader-orp {
-	color: var(--interactive-accent);
+	color: var(--speed-reader-orp-color, var(--interactive-accent));
 	font-weight: 700;
 }
 

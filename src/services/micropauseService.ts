@@ -1,5 +1,12 @@
 import { SpeedReaderSettings, WordData } from '../types';
 
+const BASE_PAUSES = {
+	sentence: 2.0,
+	clause: 1.5,
+	numbers: 1.8,
+	longWords: 1.2
+};
+
 export class MicropauseService {
 	private settings: SpeedReaderSettings;
 
@@ -16,23 +23,25 @@ export class MicropauseService {
 			return 1;
 		}
 
+		const intensity = this.settings.micropauseIntensity;
 		const raw = word.raw;
+
 		const sentenceEnding = /[.!?]["')\]]*$/.test(raw);
 		if (sentenceEnding) {
-			return this.settings.micropauseSentence;
+			return 1 + (BASE_PAUSES.sentence - 1) * intensity;
 		}
 
 		const clauseEnding = /[,;:]["')\]]*$/.test(raw);
 		if (clauseEnding) {
-			return this.settings.micropauseClause;
+			return 1 + (BASE_PAUSES.clause - 1) * intensity;
 		}
 
 		if (/\d/.test(raw)) {
-			return this.settings.micropauseNumbers;
+			return 1 + (BASE_PAUSES.numbers - 1) * intensity;
 		}
 
 		if (word.word.length > 8) {
-			return this.settings.micropauseLongWords;
+			return 1 + (BASE_PAUSES.longWords - 1) * intensity;
 		}
 
 		return 1;

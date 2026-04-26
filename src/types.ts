@@ -17,21 +17,13 @@ export interface SpeedReaderSettings {
 	wpm: number;
 	chunkSize: number;
 	fontSize: number;
+	orpColor: string;
 	showContext: boolean;
 	contextWords: number;
 	showProgress: boolean;
 	showStats: boolean;
 	enableMicropause: boolean;
-	micropauseSentence: number;
-	micropauseClause: number;
-	micropauseNumbers: number;
-	micropauseLongWords: number;
-	micropauseParagraph: number;
-	micropauseHeading: number;
-	enableSlowStart: boolean;
-	enableAcceleration: boolean;
-	accelerationDuration: number;
-	accelerationTargetWpm: number;
+	micropauseIntensity: number;
 }
 
 export interface ReaderState {
@@ -56,19 +48,11 @@ export const DEFAULT_SETTINGS: SpeedReaderSettings = {
 	wpm: 300,
 	chunkSize: 1,
 	fontSize: 64,
+	orpColor: '',
 	showContext: false,
 	contextWords: 3,
 	showProgress: true,
 	showStats: true,
 	enableMicropause: true,
-	micropauseSentence: 2.0,
-	micropauseClause: 1.5,
-	micropauseNumbers: 1.8,
-	micropauseLongWords: 1.2,
-	micropauseParagraph: 2.2,
-	micropauseHeading: 1.8,
-	enableSlowStart: true,
-	enableAcceleration: false,
-	accelerationDuration: 30,
-	accelerationTargetWpm: 500
+	micropauseIntensity: 1.5
 };

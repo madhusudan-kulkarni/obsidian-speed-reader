@@ -77,6 +77,9 @@ export class SpeedReaderModal extends Modal {
 
 		this.wordContainer = contentEl.createDiv({ cls: 'speed-reader-word-container' });
 		this.wordContainer.style.setProperty('--speed-reader-font-size', `${this.settings.fontSize}px`);
+		if (this.settings.orpColor) {
+			this.wordContainer.style.setProperty('--speed-reader-orp-color', this.settings.orpColor);
+		}
 		this.contextEl = contentEl.createDiv({ cls: 'speed-reader-context' });
 		this.statsEl = contentEl.createDiv({ cls: 'speed-reader-stats' });
 

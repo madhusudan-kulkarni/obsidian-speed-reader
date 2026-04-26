@@ -2,8 +2,6 @@ import { HeadingInfo, ReaderState, SpeedReaderSettings, WordData } from '../type
 import { MicropauseService } from '../services/micropauseService';
 import { parseDocument } from '../services/textParser';
 
-const SLOW_START_STEPS = 5;
-
 function clamp(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, value));
 }
@@ -18,10 +16,6 @@ export class RSVPEngine {
 	private onStateChange: (state: ReaderState) => void;
 	private onComplete: () => void;
 	private micropauseService: MicropauseService;
-	private startTime = 0;
-	private pausedTotal = 0;
-	private pausedAt = 0;
-	private stepsRead = 0;
 
 	constructor(
 		settings: SpeedReaderSettings,
@@ -39,8 +33,6 @@ export class RSVPEngine {
 		this.words = parsed.words;
 		this.headings = parsed.headings;
 		this.currentIndex = clamp(parsed.startWordIndex, 0, Math.max(this.words.length - 1, 0));
-		this.resetSessionTracking();
-		this.pause();
 		this.emitState(false);
 	}
 
@@ -66,7 +58,6 @@ export class RSVPEngine {
 
 		if (this.currentIndex >= this.words.length) {
 			this.currentIndex = 0;
-			this.resetSessionTracking();
 		}
 
 		if (this.isPlaying) {
@@ -74,13 +65,6 @@ export class RSVPEngine {
 		}
 
 		this.isPlaying = true;
-		if (this.startTime === 0) {
-			this.startTime = Date.now();
-		} else if (this.pausedAt > 0) {
-			this.pausedTotal += Date.now() - this.pausedAt;
-			this.pausedAt = 0;
-		}
-
 		this.runLoop();
 	}
 
@@ -89,11 +73,6 @@ export class RSVPEngine {
 			window.clearTimeout(this.timeoutId);
 			this.timeoutId = null;
 		}
-
-		if (this.isPlaying && this.pausedAt === 0) {
-			this.pausedAt = Date.now();
-		}
-
 		this.isPlaying = false;
 		this.emitState(false);
 	}
@@ -171,7 +150,6 @@ export class RSVPEngine {
 		const delay = this.getCurrentDelay();
 		this.timeoutId = window.setTimeout(() => {
 			this.currentIndex += this.settings.chunkSize;
-			this.stepsRead += 1;
 			this.timeoutId = null;
 			this.runLoop();
 		}, delay);
@@ -192,7 +170,7 @@ export class RSVPEngine {
 			return 0;
 		}
 
-		const baseDelay = 60000 / this.getCurrentWpm();
+		const baseDelay = 60000 / this.settings.wpm;
 		let multiplier = 1;
 
 		for (const word of chunk) {
@@ -200,20 +178,14 @@ export class RSVPEngine {
 		}
 
 		if (this.settings.enableMicropause && this.crossesParagraphBoundary(chunk)) {
-			multiplier = Math.max(multiplier, this.settings.micropauseParagraph);
+			multiplier = Math.max(multiplier, 1 + (2.2 - 1) * this.settings.micropauseIntensity);
 		}
 
 		if (this.settings.enableMicropause && this.startsAtHeading(this.currentIndex)) {
-			multiplier = Math.max(multiplier, this.settings.micropauseHeading);
+			multiplier = Math.max(multiplier, 1 + (1.8 - 1) * this.settings.micropauseIntensity);
 		}
 
-		let delay = baseDelay * multiplier;
-		if (this.settings.enableSlowStart && this.stepsRead < SLOW_START_STEPS) {
-			const remaining = SLOW_START_STEPS - this.stepsRead;
-			delay *= 1 + remaining / SLOW_START_STEPS;
-		}
-
-		return delay;
+		return baseDelay * multiplier;
 	}
 
 	private crossesParagraphBoundary(chunk: WordData[]): boolean {
@@ -254,25 +226,12 @@ export class RSVPEngine {
 		return current;
 	}
 
-	private getCurrentWpm(): number {
-		if (!this.settings.enableAcceleration || this.startTime === 0) {
-			return this.settings.wpm;
-		}
-
-		const now = Date.now();
-		const elapsedMs = now - this.startTime - this.pausedTotal;
-		const durationMs = Math.max(1, this.settings.accelerationDuration * 1000);
-		const progress = clamp(elapsedMs / durationMs, 0, 1);
-		const target = this.settings.accelerationTargetWpm;
-		return Math.round(this.settings.wpm + (target - this.settings.wpm) * progress);
-	}
-
 	private calculateRemainingMs(): number {
 		if (this.currentIndex >= this.words.length) {
 			return 0;
 		}
 
-		const baseDelay = 60000 / this.getCurrentWpm();
+		const baseDelay = 60000 / this.settings.wpm;
 		let total = 0;
 
 		for (let index = this.currentIndex; index < this.words.length; index += this.settings.chunkSize) {
@@ -282,10 +241,6 @@ export class RSVPEngine {
 				multiplier = Math.max(multiplier, this.micropauseService.getWordMultiplier(word));
 			}
 
-			if (this.settings.enableMicropause && this.headings.some((heading) => heading.wordIndex === index)) {
-				multiplier = Math.max(multiplier, this.settings.micropauseHeading);
-			}
-
 			total += baseDelay * multiplier;
 		}
 
@@ -293,7 +248,6 @@ export class RSVPEngine {
 	}
 
 	private emitState(finished: boolean) {
-		const currentWpm = this.getCurrentWpm();
 		const chunk = this.getCurrentChunk();
 		const totalWords = this.words.length;
 		const progress = totalWords > 0 ? Math.min((this.currentIndex / totalWords) * 100, 100) : 0;
@@ -305,16 +259,9 @@ export class RSVPEngine {
 			progress,
 			isPlaying: this.isPlaying,
 			finished,
-			currentWpm,
+			currentWpm: this.settings.wpm,
 			timeRemainingMs: this.calculateRemainingMs(),
 			currentHeading: this.getCurrentHeading()
 		});
-	}
-
-	private resetSessionTracking() {
-		this.startTime = 0;
-		this.pausedTotal = 0;
-		this.pausedAt = 0;
-		this.stepsRead = 0;
 	}
 }

@@ -49,6 +49,17 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 			}
 		);
 
+		new Setting(containerEl)
+			.setName('Orp color')
+			.setDesc('Color for the optimal recognition point highlight. Leave empty to use the theme accent color.')
+			.addText((text) => text
+				.setValue(this.plugin.settings.orpColor)
+				.setPlaceholder('Hex color')
+				.onChange(async (value) => {
+					this.plugin.settings.orpColor = value;
+					await this.plugin.saveSettings();
+				}));
+
 		new Setting(containerEl).setName('Pacing').setHeading();
 
 		new Setting(containerEl)
@@ -61,65 +72,19 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		this.addSliderWithInput(containerEl, 'Sentence pause', 'Multiplier for ., ! and ?', 1, 3, 0.1, this.plugin.settings.micropauseSentence, async (value) => {
-			this.plugin.settings.micropauseSentence = value;
-			await this.plugin.saveSettings();
-		});
-
-		this.addSliderWithInput(containerEl, 'Clause pause', 'Multiplier for commas and semicolons', 1, 3, 0.1, this.plugin.settings.micropauseClause, async (value) => {
-			this.plugin.settings.micropauseClause = value;
-			await this.plugin.saveSettings();
-		});
-
-		this.addSliderWithInput(containerEl, 'Number pause', 'Multiplier for numbers and dates', 1, 3, 0.1, this.plugin.settings.micropauseNumbers, async (value) => {
-			this.plugin.settings.micropauseNumbers = value;
-			await this.plugin.saveSettings();
-		});
-
-		this.addSliderWithInput(containerEl, 'Long word pause', 'Multiplier for words longer than 8 characters', 1, 2, 0.1, this.plugin.settings.micropauseLongWords, async (value) => {
-			this.plugin.settings.micropauseLongWords = value;
-			await this.plugin.saveSettings();
-		});
-
-		this.addSliderWithInput(containerEl, 'Paragraph pause', 'Multiplier when crossing paragraph boundaries', 1, 5, 0.1, this.plugin.settings.micropauseParagraph, async (value) => {
-			this.plugin.settings.micropauseParagraph = value;
-			await this.plugin.saveSettings();
-		});
-
-		this.addSliderWithInput(containerEl, 'Heading pause', 'Multiplier when a section heading appears', 1, 4, 0.1, this.plugin.settings.micropauseHeading, async (value) => {
-			this.plugin.settings.micropauseHeading = value;
-			await this.plugin.saveSettings();
-		});
-
-		new Setting(containerEl)
-			.setName('Slow start')
-			.setDesc('Start slightly slower for the first few words.')
-			.addToggle((toggle) => toggle
-				.setValue(this.plugin.settings.enableSlowStart)
-				.onChange(async (value) => {
-					this.plugin.settings.enableSlowStart = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('Acceleration')
-			.setDesc('Increase reading speed gradually over time.')
-			.addToggle((toggle) => toggle
-				.setValue(this.plugin.settings.enableAcceleration)
-				.onChange(async (value) => {
-					this.plugin.settings.enableAcceleration = value;
-					await this.plugin.saveSettings();
-				}));
-
-		this.addSliderWithInput(containerEl, 'Acceleration duration', 'Seconds to reach target speed', 10, 180, 5, this.plugin.settings.accelerationDuration, async (value) => {
-			this.plugin.settings.accelerationDuration = value;
-			await this.plugin.saveSettings();
-		});
-
-		this.addSliderWithInput(containerEl, 'Acceleration target', 'Target WPM while acceleration is enabled', 50, 5000, 25, this.plugin.settings.accelerationTargetWpm, async (value) => {
-			this.plugin.settings.accelerationTargetWpm = value;
-			await this.plugin.saveSettings();
-		});
+		this.addSliderWithInput(
+			containerEl,
+			'Pause intensity',
+			'Multiplier for all micropauses. Higher = longer pauses at punctuation, numbers, and long words.',
+			1,
+			3,
+			0.1,
+			this.plugin.settings.micropauseIntensity,
+			async (value) => {
+				this.plugin.settings.micropauseIntensity = value;
+				await this.plugin.saveSettings();
+			}
+		);
 
 		new Setting(containerEl).setName('Display').setHeading();
 
