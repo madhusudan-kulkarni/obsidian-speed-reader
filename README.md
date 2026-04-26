@@ -2,7 +2,7 @@
 
 RSVP-based speed reading for Obsidian. Flash one word at a time with optimal recognition point highlighting to read faster with better focus.
 
-![demo](demo.mp4)
+<video src="demo.mp4" width="100%"></video>
 
 ## Features
 
