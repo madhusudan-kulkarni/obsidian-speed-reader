@@ -30,7 +30,7 @@ function stripMarkdown(text: string): string {
 
 	result = result.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
 
-	result = result.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target, display) => {
+	result = result.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match: string, target: string, display: string) => {
 		return display ?? target;
 	});
 

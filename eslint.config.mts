@@ -12,23 +12,34 @@ export default tseslint.config(
 			parserOptions: {
 				projectService: {
 					allowDefaultProject: [
-						'eslint.config.js',
-						'manifest.json'
+						'eslint.config.mts'
 					]
 				},
-				tsconfigRootDir: import.meta.dirname,
-				extraFileExtensions: ['.json']
+				tsconfigRootDir: import.meta.dirname
 			},
 		},
 	},
 	...obsidianmd.configs.recommended,
+	{
+		rules: {
+			'obsidianmd/prefer-active-doc': 'off',
+			'obsidianmd/prefer-active-window': 'off',
+		},
+	},
+	{
+		files: ['**/*.ts'],
+	},
 	globalIgnores([
 		"node_modules",
 		"dist",
 		"esbuild.config.mjs",
-		"eslint.config.js",
+		"eslint.config.mts",
 		"version-bump.mjs",
 		"versions.json",
+		"manifest.json",
+		"package.json",
 		"main.js",
+		".github",
+		"tests",
 	]),
 );
