@@ -16,6 +16,7 @@ export interface HeadingInfo {
 export interface SpeedReaderSettings {
 	wpm: number;
 	chunkSize: number;
+	fontSize: number;
 	showContext: boolean;
 	contextWords: number;
 	showProgress: boolean;
@@ -54,6 +55,7 @@ export interface ParsedDocument {
 export const DEFAULT_SETTINGS: SpeedReaderSettings = {
 	wpm: 300,
 	chunkSize: 1,
+	fontSize: 64,
 	showContext: false,
 	contextWords: 3,
 	showProgress: true,

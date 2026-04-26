@@ -35,7 +35,6 @@ export default class SpeedReaderPlugin extends Plugin {
 			}
 		});
 
-		// Command: Speed read selection
 		this.addCommand({
 			id: 'speed-read-selection',
 			name: 'Speed read selected text',
@@ -98,14 +97,14 @@ export default class SpeedReaderPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	private startSpeedReading(view: MarkdownView, forceWholeNote = false) {
+	private startSpeedReading(view: MarkdownView, fromCursor = false) {
 		const editor = view.editor;
 		let text = editor.getSelection();
 		let startOffset = 0;
 
-		if (forceWholeNote || !text || text.length === 0) {
+		if (!text || text.length === 0) {
 			text = editor.getValue();
-			startOffset = editor.posToOffset(editor.getCursor());
+			startOffset = fromCursor ? editor.posToOffset(editor.getCursor()) : 0;
 		}
 
 		if (!text || text.trim().length === 0) {

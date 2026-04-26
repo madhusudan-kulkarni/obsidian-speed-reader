@@ -123,6 +123,20 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName('Display').setHeading();
 
+		this.addSliderWithInput(
+			containerEl,
+			'Font size',
+			'Word font size in pixels.',
+			24,
+			200,
+			2,
+			this.plugin.settings.fontSize,
+			async (value) => {
+				this.plugin.settings.fontSize = value;
+				await this.plugin.saveSettings();
+			}
+		);
+
 		new Setting(containerEl)
 			.setName('Show context')
 			.setDesc('Display surrounding words around the active chunk.')

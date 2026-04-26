@@ -29,6 +29,9 @@ export class SpeedReaderModal extends Modal {
 	private engine: RSVPEngine;
 	private focusMode = false;
 	private state: ReaderState | null = null;
+	private wasPlayingBeforeBlur = false;
+	private boundVisibilityHandler: () => void;
+	private boundBlurHandler: () => void;
 
 	private wordContainer!: HTMLElement;
 	private statsEl!: HTMLElement;
@@ -50,6 +53,8 @@ export class SpeedReaderModal extends Modal {
 		this.settings = settings;
 		this.onSettingsChange = onSettingsChange;
 		this.startOffset = startOffset;
+		this.boundVisibilityHandler = () => this.handleVisibilityChange();
+		this.boundBlurHandler = () => this.handleWindowBlur();
 		this.engine = new RSVPEngine(
 			this.settings,
 			(state) => {
@@ -67,8 +72,11 @@ export class SpeedReaderModal extends Modal {
 		modalEl.addClass('speed-reader-modal');
 		contentEl.empty();
 		contentEl.addClass('speed-reader-content');
+		contentEl.setAttr('tabindex', '-1');
+		contentEl.focus();
 
 		this.wordContainer = contentEl.createDiv({ cls: 'speed-reader-word-container' });
+		this.wordContainer.style.setProperty('--speed-reader-font-size', `${this.settings.fontSize}px`);
 		this.contextEl = contentEl.createDiv({ cls: 'speed-reader-context' });
 		this.statsEl = contentEl.createDiv({ cls: 'speed-reader-stats' });
 
@@ -79,12 +87,14 @@ export class SpeedReaderModal extends Modal {
 		this.controlsEl = contentEl.createDiv({ cls: 'speed-reader-controls' });
 
 		this.registerKeyboardHandlers();
+		this.registerFocusHandlers();
 		this.engine.loadText(this.sourceText, this.startOffset);
 		this.buildHeadingSelector();
-		this.engine.play();
 	}
 
 	onClose() {
+		document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
+		window.removeEventListener('blur', this.boundBlurHandler);
 		this.engine.pause();
 		this.onSettingsChange(this.settings);
 		this.contentEl.empty();
@@ -134,6 +144,48 @@ export class SpeedReaderModal extends Modal {
 			this.close();
 			return false;
 		});
+
+		this.contentEl.addEventListener('keydown', (event) => {
+			if (event.key === ' ') {
+				event.preventDefault();
+				this.engine.togglePlayPause();
+			}
+		});
+	}
+
+	private registerFocusHandlers() {
+		document.addEventListener('visibilitychange', this.boundVisibilityHandler);
+		window.addEventListener('blur', this.boundBlurHandler);
+	}
+
+	private handleVisibilityChange() {
+		if (document.hidden) {
+			this.pauseIfPlaying();
+		} else if (this.wasPlayingBeforeBlur) {
+			this.wasPlayingBeforeBlur = false;
+			this.engine.play();
+		}
+	}
+
+	private handleWindowBlur() {
+		if (!document.hidden) {
+			this.pauseIfPlaying();
+		}
+	}
+
+	private pauseIfPlaying() {
+		const state = this.state;
+		if (state?.isPlaying) {
+			this.wasPlayingBeforeBlur = true;
+			this.engine.pause();
+		}
+	}
+
+	private refocusContent() {
+		const active = document.activeElement;
+		if (active instanceof HTMLButtonElement || active instanceof HTMLSelectElement) {
+			this.contentEl.focus();
+		}
 	}
 
 	private buildHeadingSelector() {
@@ -158,6 +210,7 @@ export class SpeedReaderModal extends Modal {
 			}
 
 			this.sectionSelect.value = '';
+			this.refocusContent();
 		});
 	}
 
@@ -174,6 +227,7 @@ export class SpeedReaderModal extends Modal {
 
 		const percentage = (event.clientX - rect.left) / rect.width;
 		this.engine.seekToPercent(percentage);
+		this.refocusContent();
 	}
 
 	private render() {
@@ -232,15 +286,18 @@ export class SpeedReaderModal extends Modal {
 			cls: 'speed-reader-play-btn',
 			text: state.isPlaying ? '⏸' : '▶'
 		});
-		playPause.addEventListener('click', () => this.engine.togglePlayPause());
+		playPause.addEventListener('click', () => {
+			this.engine.togglePlayPause();
+			this.refocusContent();
+		});
 
 		const speedGroup = this.statsEl.createDiv({ cls: 'speed-reader-speed-control' });
 		const decrease = speedGroup.createEl('button', { cls: 'speed-reader-speed-btn', text: '−' });
-		decrease.addEventListener('click', () => this.adjustWpm(-25));
+		decrease.addEventListener('click', () => { this.adjustWpm(-25); this.refocusContent(); });
 		speedGroup.createSpan({ cls: 'speed-reader-wpm', text: String(Math.round(state.currentWpm)) });
 		speedGroup.createSpan({ cls: 'speed-reader-wpm-label', text: 'WPM' });
 		const increase = speedGroup.createEl('button', { cls: 'speed-reader-speed-btn', text: '+' });
-		increase.addEventListener('click', () => this.adjustWpm(25));
+		increase.addEventListener('click', () => { this.adjustWpm(25); this.refocusContent(); });
 
 		const progressInfo = this.statsEl.createDiv({ cls: 'speed-reader-progress-info' });
 		const currentWord = Math.min(state.currentIndex + 1, state.totalWords);

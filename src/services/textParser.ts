@@ -16,28 +16,97 @@ function stripTrailingPunctuation(word: string): { clean: string; punctuation: s
 	return { clean: word, punctuation: '' };
 }
 
-function parseWords(text: string): WordData[] {
-	const words: WordData[] = [];
-	const matcher = /\S+/g;
-	let match = matcher.exec(text);
+function stripMarkdown(text: string): string {
+	let result = text;
+
+	result = result.replace(/^---[\s\S]*?---\n?/gm, '');
+
+	result = result.replace(/^```[\s\S]*?^```/gm, '');
+	result = result.replace(/```[\s\S]*?```/g, '');
+
+	result = result.replace(/`([^`]+)`/g, '$1');
+
+	result = result.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
+
+	result = result.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+
+	result = result.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target, display) => {
+		return display ?? target;
+	});
+
+	result = result.replace(/^(#{1,6})\s+/gm, '');
+
+	result = result.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
+	result = result.replace(/___([^_\n]+)___/g, '$1');
+	result = result.replace(/\*\*([^*]+)\*\*/g, '$1');
+	result = result.replace(/(?<!\w)__([^_\n]+)__(?!\w)/g, '$1');
+	result = result.replace(/(?<!\w)\*([^*]+)\*(?!\w)/g, '$1');
+	result = result.replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, '$1');
+
+	result = result.replace(/~~([^~]+)~~/g, '$1');
+	result = result.replace(/==([^=]+)==/g, '$1');
+	result = result.replace(/%%([^%]+)%%/g, '');
+
+	result = result.replace(/^[-*+]\s+/gm, ' ');
+	result = result.replace(/^\d+\.\s+/gm, ' ');
+	result = result.replace(/^>\s+/gm, '');
+
+	result = result.replace(/^---+\s*$/gm, '');
+	result = result.replace(/^-{3,}\s*$/gm, '');
+
+	return result;
+}
+
+function tokenize(text: string): { raw: string; start: number }[] {
+	const tokens: { raw: string; start: number }[] = [];
+	const pattern = /\S+/g;
+	let match = pattern.exec(text);
 
 	while (match !== null) {
-		const raw = match[0];
-		const start = match.index;
-		const end = start + raw.length;
-		const stripped = stripTrailingPunctuation(raw);
-		const displayWord = stripped.clean.length > 0 ? stripped.clean : raw;
+		tokens.push({ raw: match[0], start: match.index });
+		match = pattern.exec(text);
+	}
+
+	return tokens;
+}
+
+function stripLeadingPunctuation(word: string): { clean: string; leading: string } {
+	const match = word.match(/^([([{'"(]+)(.+)$/);
+	if (match && match[1] && match[2]) {
+		return { clean: match[2], leading: match[1] };
+	}
+	return { clean: word, leading: '' };
+}
+
+function parseWords(strippedText: string): WordData[] {
+	const words: WordData[] = [];
+	const tokens = tokenize(strippedText);
+
+	for (const token of tokens) {
+		const { raw, start } = token;
+		let displayWord = raw;
+		let punctuation = '';
+
+		if (raw.startsWith('(') && raw.endsWith(')') && raw.length > 2) {
+			displayWord = raw.slice(1, -1);
+			const inner = stripTrailingPunctuation(displayWord);
+			displayWord = inner.clean.length > 0 ? inner.clean : displayWord;
+			punctuation = inner.punctuation;
+		} else {
+			const leadingStripped = stripLeadingPunctuation(raw);
+			const trailingStripped = stripTrailingPunctuation(leadingStripped.clean);
+			displayWord = trailingStripped.clean.length > 0 ? trailingStripped.clean : leadingStripped.clean;
+			punctuation = trailingStripped.punctuation;
+		}
 
 		words.push({
 			raw,
 			word: displayWord,
-			punctuation: stripped.punctuation,
+			punctuation,
 			orpIndex: calculateORP(displayWord),
 			start,
-			end
+			end: start + raw.length
 		});
-
-		match = matcher.exec(text);
 	}
 
 	return words;
@@ -98,7 +167,8 @@ function extractHeadings(text: string, words: WordData[]): HeadingInfo[] {
 }
 
 export function parseDocument(text: string, startOffset = 0): ParsedDocument {
-	const words = parseWords(text);
+	const strippedText = stripMarkdown(text);
+	const words = parseWords(strippedText);
 	const headings = extractHeadings(text, words);
 	const boundedStartOffset = Math.max(0, startOffset);
 	const startWordIndex = findWordIndexAtOffset(words, boundedStartOffset);
@@ -109,3 +179,5 @@ export function parseDocument(text: string, startOffset = 0): ParsedDocument {
 		startWordIndex
 	};
 }
+
+export { stripMarkdown };
