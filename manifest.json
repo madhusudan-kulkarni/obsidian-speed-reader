@@ -1,7 +1,7 @@
 {
 	"id": "speed-reader",
 	"name": "Speed Reader",
-	"version": "1.2.1",
+	"version": "1.2.2",
 	"minAppVersion": "0.15.0",
 	"description": "RSVP-based speed reading for your notes - flash one word at a time with optimal recognition point highlighting.",
 	"author": "Madhusudan Kulkarni",

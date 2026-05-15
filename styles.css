@@ -187,8 +187,8 @@
 	font-size: 0.75rem;
 }
 
-.is-hidden {
-	display: none !important;
+.speed-reader-modal .is-hidden {
+	display: none;
 }
 
 /* Play/Pause Button */
@@ -361,8 +361,8 @@
 	opacity: 0.6;
 }
 
-.speed-reader-controls:hover {
-	opacity: 1 !important;
+.speed-reader-content .speed-reader-controls:hover {
+	opacity: 1;
 }
 
 .speed-reader-controls kbd {

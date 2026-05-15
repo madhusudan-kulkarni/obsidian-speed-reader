@@ -33,6 +33,7 @@ export class SpeedReaderModal extends Modal {
 	private boundVisibilityHandler: () => void;
 	private boundBlurHandler: () => void;
 
+	private ownerDoc!: Document;
 	private wordContainer!: HTMLElement;
 	private statsEl!: HTMLElement;
 	private progressBarContainer!: HTMLElement;
@@ -68,6 +69,7 @@ export class SpeedReaderModal extends Modal {
 	}
 
 	onOpen() {
+		this.ownerDoc = this.containerEl.ownerDocument;
 		const { contentEl, modalEl } = this;
 		modalEl.addClass('speed-reader-modal');
 		contentEl.empty();
@@ -96,8 +98,8 @@ export class SpeedReaderModal extends Modal {
 	}
 
 	onClose() {
-		document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
-		window.removeEventListener('blur', this.boundBlurHandler);
+		this.ownerDoc.removeEventListener('visibilitychange', this.boundVisibilityHandler);
+		this.ownerDoc.defaultView?.removeEventListener('blur', this.boundBlurHandler);
 		this.engine.pause();
 		this.onSettingsChange(this.settings);
 		this.contentEl.empty();
@@ -157,12 +159,12 @@ export class SpeedReaderModal extends Modal {
 	}
 
 	private registerFocusHandlers() {
-		document.addEventListener('visibilitychange', this.boundVisibilityHandler);
-		window.addEventListener('blur', this.boundBlurHandler);
+		this.ownerDoc.addEventListener('visibilitychange', this.boundVisibilityHandler);
+		this.ownerDoc.defaultView?.addEventListener('blur', this.boundBlurHandler);
 	}
 
 	private handleVisibilityChange() {
-		if (document.hidden) {
+		if (this.ownerDoc.hidden) {
 			this.pauseIfPlaying();
 		} else if (this.wasPlayingBeforeBlur) {
 			this.wasPlayingBeforeBlur = false;
@@ -171,7 +173,7 @@ export class SpeedReaderModal extends Modal {
 	}
 
 	private handleWindowBlur() {
-		if (!document.hidden) {
+		if (!this.ownerDoc.hidden) {
 			this.pauseIfPlaying();
 		}
 	}
@@ -185,7 +187,7 @@ export class SpeedReaderModal extends Modal {
 	}
 
 	private refocusContent() {
-		const active = document.activeElement;
+		const active = this.ownerDoc.activeElement;
 		if (active instanceof HTMLButtonElement || active instanceof HTMLSelectElement) {
 			this.contentEl.focus();
 		}
