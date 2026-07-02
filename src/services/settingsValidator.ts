@@ -32,6 +32,8 @@ export function validateSettings(raw: Partial<SpeedReaderSettings> | null | unde
 		wpm: clamp(Math.round(toNumber(settings.wpm, DEFAULT_SETTINGS.wpm)), 50, 5000),
 		chunkSize: clamp(Math.round(toNumber(settings.chunkSize, DEFAULT_SETTINGS.chunkSize)), 1, 5),
 		fontSize: clamp(Math.round(toNumber(settings.fontSize, DEFAULT_SETTINGS.fontSize)), 24, 200),
+		windowWidth: clamp(Math.round(toNumber(settings.windowWidth, DEFAULT_SETTINGS.windowWidth)), 40, 100),
+		windowMaxWidth: clamp(Math.round(toNumber(settings.windowMaxWidth, DEFAULT_SETTINGS.windowMaxWidth)), 0, 3000),
 		orpColor: toString(settings.orpColor, DEFAULT_SETTINGS.orpColor),
 		showContext: toBoolean(settings.showContext, DEFAULT_SETTINGS.showContext),
 		contextWords: clamp(Math.round(toNumber(settings.contextWords, DEFAULT_SETTINGS.contextWords)), 1, 10),

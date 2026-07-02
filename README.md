@@ -25,6 +25,7 @@ Use it when you want to:
 - **Natural pacing** — Adds small pauses at punctuation, numbers, and longer words so the flow feels less robotic.
 - **Live speed control** — Change WPM, skip forward or backward, and jump between sections while reading.
 - **Focus mode** — Hide controls and keep only the current word on screen.
+- **Adjustable, always-readable display** — Set the reading window width, and the focus letter stays centered on the guide while long words auto-fit (or wrap) so they never get cut off.
 - **Selection support** — Read selected text, or start from the whole note.
 
 ## How it works

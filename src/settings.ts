@@ -50,7 +50,7 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 		);
 
 		new Setting(containerEl)
-			.setName('Orp color')
+			.setName('ORP color')
 			.setDesc('Color for the optimal recognition point highlight. Leave empty to use the theme accent color.')
 			.addText((text) => text
 				.setValue(this.plugin.settings.orpColor)
@@ -102,6 +102,34 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 			}
 		);
 
+		this.addSliderWithInput(
+			containerEl,
+			'Reading window width',
+			'Width of the reading window as a percent of the app window. Applies on next open.',
+			40,
+			100,
+			5,
+			this.plugin.settings.windowWidth,
+			async (value) => {
+				this.plugin.settings.windowWidth = value;
+				await this.plugin.saveSettings();
+			}
+		);
+
+		this.addSliderWithInput(
+			containerEl,
+			'Reading window max width',
+			'Upper limit in pixels that caps the width above, so the window never gets wider than this even at 100% (0 = no limit). Applies on next open.',
+			0,
+			3000,
+			20,
+			this.plugin.settings.windowMaxWidth,
+			async (value) => {
+				this.plugin.settings.windowMaxWidth = value;
+				await this.plugin.saveSettings();
+			}
+		);
+
 		new Setting(containerEl)
 			.setName('Show context')
 			.setDesc('Display surrounding words around the active chunk.')
@@ -112,10 +140,19 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		this.addSliderWithInput(containerEl, 'Context words', 'How many words to show before and after', 1, 10, 1, this.plugin.settings.contextWords, async (value) => {
-			this.plugin.settings.contextWords = value;
-			await this.plugin.saveSettings();
-		});
+		this.addSliderWithInput(
+			containerEl,
+			'Context words',
+			'How many words to show before and after.',
+			1,
+			10,
+			1,
+			this.plugin.settings.contextWords,
+			async (value) => {
+				this.plugin.settings.contextWords = value;
+				await this.plugin.saveSettings();
+			}
+		);
 
 		new Setting(containerEl)
 			.setName('Show progress bar')
@@ -184,7 +221,12 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 
 	private normalizeValue(value: number, min: number, max: number, step: number): number {
 		const clamped = Math.max(min, Math.min(max, value));
-		const rounded = Math.round(clamped / step) * step;
+		let rounded = Math.round(clamped / step) * step;
+		// A strictly-positive value must not collapse to 0, which some settings use as a
+		// sentinel (e.g. "no limit"); snap it up to the first real step instead.
+		if (rounded === 0 && clamped > 0) {
+			rounded = step;
+		}
 		if (step < 1) {
 			return Number(rounded.toFixed(1));
 		}
