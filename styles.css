@@ -108,7 +108,7 @@
 }
 
 .speed-reader-left {
-	text-align: right;
+	text-align: end;
 	min-width: calc(var(--speed-reader-font-size, 4rem) * 1.5);
 	color: var(--text-muted);
 }
@@ -119,9 +119,25 @@
 }
 
 .speed-reader-right {
-	text-align: left;
+	text-align: start;
 	min-width: calc(var(--speed-reader-font-size, 4rem) * 1.5);
 	color: var(--text-muted);
+}
+
+.speed-reader-word-rtl {
+	background: linear-gradient(
+		to right,
+		var(--text-muted) 0%,
+		var(--text-muted) var(--orp-start),
+		var(--speed-reader-orp-color, var(--interactive-accent)) var(--orp-start),
+		var(--speed-reader-orp-color, var(--interactive-accent)) var(--orp-end),
+		var(--text-muted) var(--orp-end),
+		var(--text-muted) 100%
+	);
+	background-clip: text;
+	-webkit-background-clip: text;
+	color: transparent;
+	font-weight: 500;
 }
 
 .speed-reader-context {
