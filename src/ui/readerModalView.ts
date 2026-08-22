@@ -2,6 +2,7 @@ import { App, Modal, Notice, Platform } from 'obsidian';
 import { RSVPEngine } from '../engine/rsvpEngine';
 import { HeadingInfo, ReaderState, SpeedReaderSettings, WordData } from '../types';
 import { fitWordFont, FIT_SAFETY, MIN_WORD_FONT_SIZE } from '../services/fontFitter';
+import { isRTL } from '../utils/rtl';
 
 /** A non-zero window max width below this (px) would render an unusable reader, so it is floored. */
 const MIN_MODAL_MAX_WIDTH = 400;
@@ -51,7 +52,7 @@ export class SpeedReaderModal extends Modal {
 	private controlsEl!: HTMLElement;
 	private contextEl!: HTMLElement;
 	private sectionSelect!: HTMLSelectElement;
-
+	private measureCanvas: HTMLCanvasElement | null = null;
 	private measureCtx: CanvasRenderingContext2D | null = null;
 	private availableWidth = 0;
 	private remPx = 16;
@@ -145,6 +146,9 @@ export class SpeedReaderModal extends Modal {
 		this.engine.pause();
 		this.onSettingsChange(this.settings);
 		this.contentEl.empty();
+		this.measureCanvas?.remove();
+		this.measureCanvas = null;
+		this.measureCtx = null;
 	}
 
 	private registerKeyboardHandlers() {
@@ -320,6 +324,15 @@ export class SpeedReaderModal extends Modal {
 	}
 
 	private renderWordUnit(parent: HTMLElement, word: WordData) {
+		if (isRTL(word.word)) {
+			const unit = parent.createSpan({ cls: 'speed-reader-word-unit speed-reader-word-rtl', attr: { dir: 'rtl' } });
+			const { start, end } = this.measureOrpPosition(word.word, word.orpIndex, unit);
+			unit.style.setProperty('--orp-start', `${start}%`);
+			unit.style.setProperty('--orp-end', `${end}%`);
+			unit.setText(word.word + word.punctuation);
+			return;
+		}
+
 		const unit = parent.createSpan({ cls: 'speed-reader-word-unit' });
 		const { before, orp, after } = this.splitWord(word);
 
@@ -351,8 +364,11 @@ export class SpeedReaderModal extends Modal {
 	}
 
 	private getMeasureCtx(): CanvasRenderingContext2D | null {
+		if (!this.measureCanvas) {
+			this.measureCanvas = this.ownerDoc.createElement('canvas');
+		}
 		if (!this.measureCtx) {
-			this.measureCtx = this.ownerDoc.createElement('canvas').getContext('2d');
+			this.measureCtx = this.measureCanvas.getContext('2d');
 		}
 		return this.measureCtx;
 	}
@@ -421,6 +437,24 @@ export class SpeedReaderModal extends Modal {
 		});
 		wordWrapper.style.fontSize = `${fit.fontSize}px`;
 	}
+
+	private measureOrpPosition(word: string, orpIndex: number, el: HTMLElement): { start: number; end: number } {
+		const ctx = this.getMeasureCtx();
+		if (!ctx) {
+			const len = word.length;
+			return { start: ((len - 1 - orpIndex) / len) * 100, end: ((len - orpIndex) / len) * 100 };
+		}
+		ctx.font = getComputedStyle(el).font;
+		const before = word.slice(0, orpIndex);
+		const orp = word.charAt(orpIndex);
+		const beforeWidth = ctx.measureText(before).width;
+		const orpWidth = ctx.measureText(orp).width;
+		const totalWidth = beforeWidth + orpWidth + ctx.measureText(word.slice(orpIndex + 1)).width;
+		if (totalWidth <= 0) return { start: 50, end: 60 };
+		const ltrStart = (beforeWidth / totalWidth) * 100;
+		const ltrEnd = ((beforeWidth + orpWidth) / totalWidth) * 100;
+		return { start: 100 - ltrEnd, end: 100 - ltrStart };
+	} 
 
 	private renderStats(state: ReaderState) {
 		this.statsEl.toggleClass('is-hidden', !this.settings.showStats);
