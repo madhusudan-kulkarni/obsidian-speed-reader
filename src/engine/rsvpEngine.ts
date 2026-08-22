@@ -85,6 +85,11 @@ export class RSVPEngine {
 		}
 	}
 
+	restart() {
+		this.seekToIndex(0);
+		this.play();
+	}
+
 	rewind(count: number) {
 		this.seekToIndex(this.currentIndex - count);
 	}

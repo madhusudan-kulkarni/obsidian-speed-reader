@@ -182,6 +182,12 @@ export class SpeedReaderModal extends Modal {
 			return false;
 		});
 
+		this.scope.register([], 'r', (event) => {
+			event.preventDefault();
+			this.engine.restart();
+			return false;
+		});
+
 		this.scope.register([], 'f', (event) => {
 			event.preventDefault();
 			this.focusMode = !this.focusMode;
@@ -200,6 +206,9 @@ export class SpeedReaderModal extends Modal {
 			if (event.key === ' ') {
 				event.preventDefault();
 				this.engine.togglePlayPause();
+			} else if (event.key === 'r' || event.key === 'R') {
+				event.preventDefault();
+				this.engine.restart();
 			}
 		});
 	}
@@ -305,6 +314,14 @@ export class SpeedReaderModal extends Modal {
 			const doneEl = this.wordContainer.createDiv({ cls: 'speed-reader-done' });
 			doneEl.createSpan({ text: '✓', cls: 'speed-reader-done-icon' });
 			doneEl.createSpan({ text: 'Finished', cls: 'speed-reader-done-text' });
+			const restartBtn = doneEl.createEl('button', {
+				cls: 'speed-reader-restart-btn',
+				text: 'Read again'
+			});
+			restartBtn.addEventListener('click', () => {
+				this.engine.restart();
+				this.refocusContent();
+			});
 			return;
 		}
 
@@ -545,6 +562,8 @@ export class SpeedReaderModal extends Modal {
 		}
 
 		this.createKeyHint('Space', 'play/pause');
+		this.controlsEl.createSpan({ text: ' • ' });
+		this.createKeyHint('R', 'restart');
 		this.controlsEl.createSpan({ text: ' • ' });
 		this.createKeyHint('←/→', 'skip');
 		this.controlsEl.createSpan({ text: ' • ' });

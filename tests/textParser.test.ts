@@ -336,4 +336,60 @@ describe('parseDocument', () => {
 		const bracketWord = doc.words.find(w => w.word.includes('[') || w.word.includes(']'));
 		expect(bracketWord).toBeUndefined();
 	});
+
+	it('strips Obsidian callout markers and keeps content', () => {
+		const doc = parseDocument('> [!NOTE]\n> This is important inside a callout.');
+		expect(doc.words.some(w => w.word.includes('[!NOTE]') || w.raw.includes('[!NOTE]'))).toBe(false);
+		expect(doc.words.some(w => w.word === 'important')).toBe(true);
+	});
+
+	it('strips Obsidian collapsible callouts with titles', () => {
+		const doc = parseDocument('> [!WARNING]+ Warning Header\n> Beware of pitfalls.');
+		expect(doc.words.some(w => w.word.includes('[!WARNING]'))).toBe(false);
+		expect(doc.words.some(w => w.word === 'Warning')).toBe(true);
+		expect(doc.words.some(w => w.word === 'pitfalls')).toBe(true);
+	});
+
+	it('cleans markdown tables without table separators in word stream', () => {
+		const input = '| Header 1 | Header 2 |\n|---|---|\n| Cell A | Cell B |';
+		const doc = parseDocument(input);
+		expect(doc.words.some(w => w.word.includes('---') || w.raw.includes('---'))).toBe(false);
+		expect(doc.words.some(w => w.word === '|')).toBe(false);
+		expect(doc.words.some(w => w.word === 'Header')).toBe(true);
+		expect(doc.words.some(w => w.word === 'Cell')).toBe(true);
+	});
+
+	it('strips HTML tags and preserves inner text', () => {
+		const doc = parseDocument('This is <mark>highlighted</mark> and <span class="custom">styled</span> text.<br/>Next line.');
+		expect(doc.words.some(w => w.word.includes('<mark>') || w.word.includes('</mark>'))).toBe(false);
+		expect(doc.words.some(w => w.word.includes('<br'))).toBe(false);
+		expect(doc.words.some(w => w.word === 'highlighted')).toBe(true);
+		expect(doc.words.some(w => w.word === 'styled')).toBe(true);
+		expect(doc.words.some(w => w.word === 'Next')).toBe(true);
+	});
+
+	it('strips footnote references and footnote definitions', () => {
+		const doc = parseDocument('This fact is true[^1].\n\n[^1]: Reference note text.');
+		expect(doc.words.some(w => w.word.includes('[^1]') || w.raw.includes('[^1]'))).toBe(false);
+		expect(doc.words.some(w => w.word === 'fact')).toBe(true);
+		expect(doc.words.some(w => w.word === 'Reference')).toBe(true);
+	});
+
+	it('handles curly quotes and guillemets cleanly', () => {
+		const doc = parseDocument('“Smart quotes” and ‘single quotes’ and «guillemets»');
+		const smartWord = doc.words.find(w => w.word === 'Smart');
+		expect(smartWord).toBeDefined();
+		expect(smartWord!.word).toBe('Smart');
+		const singleWord = doc.words.find(w => w.word === 'single');
+		expect(singleWord).toBeDefined();
+		const guillemetWord = doc.words.find(w => w.word === 'guillemets');
+		expect(guillemetWord).toBeDefined();
+	});
+
+	it('strips task list checkboxes', () => {
+		const doc = parseDocument('- [ ] Pending item\n- [x] Completed item');
+		expect(doc.words.some(w => w.word.includes('[ ]') || w.word.includes('[x]'))).toBe(false);
+		expect(doc.words.some(w => w.word === 'Pending')).toBe(true);
+		expect(doc.words.some(w => w.word === 'Completed')).toBe(true);
+	});
 });

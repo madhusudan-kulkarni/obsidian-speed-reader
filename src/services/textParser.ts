@@ -9,7 +9,7 @@ function calculateORP(word: string): number {
 }
 
 function stripTrailingPunctuation(word: string): { clean: string; punctuation: string } {
-	const match = word.match(/^(.+?)([.,!?;:)}\]"']+)$/);
+	const match = word.match(/^(.+?)([.,!?;:)}\]"'”’»]+)$/);
 	if (match && match[1] && match[2]) {
 		return { clean: match[1], punctuation: match[2] };
 	}
@@ -26,6 +26,13 @@ function stripMarkdown(text: string): string {
 
 	result = result.replace(/`([^`]+)`/g, '$1');
 
+	// HTML tags (e.g. <br>, <mark>word</mark>, <span>)
+	result = result.replace(/<[^>]+>/g, ' ');
+
+	// Footnotes: markers [^1] and footnote definitions [^1]: ...
+	result = result.replace(/^\[\^[^\]]+\]:\s*/gm, '');
+	result = result.replace(/\[\^[^\]]+\]/g, '');
+
 	result = result.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
 
 	result = result.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
@@ -35,6 +42,9 @@ function stripMarkdown(text: string): string {
 	});
 
 	result = result.replace(/^(#{1,6})\s+/gm, '');
+
+	// Obsidian Callouts: e.g. > [!NOTE], > [!WARNING]+ Title, > [!INFO]-
+	result = result.replace(/^>\s*\[![\w-]+\][+-]?\s*/gm, '');
 
 	result = result.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
 	result = result.replace(/___([^_\n]+)___/g, '$1');
@@ -47,12 +57,21 @@ function stripMarkdown(text: string): string {
 	result = result.replace(/==([^=]+)==/g, '$1');
 	result = result.replace(/%%([^%]+)%%/g, '');
 
+	// Task lists
+	result = result.replace(/^[-*+]\s+\[[ xX]\]\s+/gm, ' ');
+
+	// Lists and blockquotes
 	result = result.replace(/^[-*+]\s+/gm, ' ');
 	result = result.replace(/^\d+\.\s+/gm, ' ');
 	result = result.replace(/^>\s+/gm, '');
 
-	result = result.replace(/^---+\s*$/gm, '');
-	result = result.replace(/^-{3,}\s*$/gm, '');
+	// Markdown Tables: table delimiter rows like |---|:---|---:|
+	result = result.replace(/^\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)+\|?$/gm, '');
+	// Replace remaining table pipe separators with spaces so cell text becomes words
+	result = result.replace(/\|/g, ' ');
+
+	// Horizontal rules
+	result = result.replace(/^(?:-{3,}|_{3,}|\*{3,})\s*$/gm, '');
 
 	return result;
 }
@@ -71,7 +90,7 @@ function tokenize(text: string): { raw: string; start: number }[] {
 }
 
 function stripLeadingPunctuation(word: string): { clean: string; leading: string } {
-	const match = word.match(/^([([{'"(]+)(.+)$/);
+	const match = word.match(/^([([{'"“‘«]+)(.+)$/);
 	if (match && match[1] && match[2]) {
 		return { clean: match[2], leading: match[1] };
 	}

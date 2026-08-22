@@ -153,6 +153,14 @@ describe('RSVPEngine', () => {
 		engine.loadText('One two three');
 		expect(stateChanges[stateChanges.length - 1]!.isPlaying).toBe(false);
 	});
+
+	it('restarts from index 0 when restart() is called', () => {
+		engine.loadText('One two three four five');
+		engine.seekToIndex(3);
+		engine.restart();
+		expect(stateChanges[stateChanges.length - 1]!.currentIndex).toBe(0);
+		expect(stateChanges[stateChanges.length - 1]!.isPlaying).toBe(true);
+	});
 });
 
 describe('Visibility change auto-pause logic', () => {
