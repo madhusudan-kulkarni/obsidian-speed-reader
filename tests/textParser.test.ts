@@ -392,4 +392,19 @@ describe('parseDocument', () => {
 		expect(doc.words.some(w => w.word === 'Pending')).toBe(true);
 		expect(doc.words.some(w => w.word === 'Completed')).toBe(true);
 	});
+
+	it('strips block math LaTeX expressions', () => {
+		const doc = parseDocument('Before formula\n$$\n\\int_0^\\infty e^{-x} dx = 1\n$$\nAfter formula');
+		expect(doc.words.some(w => w.word.includes('\\int') || w.word.includes('$$'))).toBe(false);
+		expect(doc.words.some(w => w.word === 'Before')).toBe(true);
+		expect(doc.words.some(w => w.word === 'After')).toBe(true);
+	});
+
+	it('strips inline math LaTeX formulas while preserving regular dollar values', () => {
+		const doc = parseDocument('Calculate $x^2 + y^2 = z^2$ for value. The cost is $50 total.');
+		expect(doc.words.some(w => w.word.includes('x^2'))).toBe(false);
+		expect(doc.words.some(w => w.word === 'Calculate')).toBe(true);
+		expect(doc.words.some(w => w.word === 'value')).toBe(true);
+		expect(doc.words.some(w => w.raw.includes('50') || w.word === '50')).toBe(true);
+	});
 });

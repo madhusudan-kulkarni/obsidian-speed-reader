@@ -26,6 +26,10 @@ function stripMarkdown(text: string): string {
 
 	result = result.replace(/`([^`]+)`/g, '$1');
 
+	// LaTeX / MathJax formulas: block math $$...$$ and inline math $...$
+	result = result.replace(/\$\$[\s\S]*?\$\$/g, ' ');
+	result = result.replace(/(?<!\\)\$(?!\s)([^$\n]+?)(?<!\s)\$/g, ' ');
+
 	// HTML tags (e.g. <br>, <mark>word</mark>, <span>)
 	result = result.replace(/<[^>]+>/g, ' ');
 

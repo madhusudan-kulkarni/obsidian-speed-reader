@@ -49,6 +49,7 @@ export class SpeedReaderModal extends Modal {
 	private statsEl!: HTMLElement;
 	private progressBarContainer!: HTMLElement;
 	private progressBarFill!: HTMLElement;
+	private progressBarTooltip!: HTMLElement;
 	private controlsEl!: HTMLElement;
 	private contextEl!: HTMLElement;
 	private sectionSelect!: HTMLSelectElement;
@@ -114,12 +115,25 @@ export class SpeedReaderModal extends Modal {
 			this.wordContainer.style.setProperty('--speed-reader-orp-color', this.settings.orpColor);
 		}
 		this.applyFontFamily();
+		this.wordContainer.addEventListener('click', (event) => {
+			if ((event.target as HTMLElement).closest('.speed-reader-restart-btn, .speed-reader-close-btn')) {
+				return;
+			}
+			this.engine.togglePlayPause();
+			this.refocusContent();
+		});
+
 		this.contextEl = contentEl.createDiv({ cls: 'speed-reader-context' });
 		this.statsEl = contentEl.createDiv({ cls: 'speed-reader-stats' });
 
 		this.progressBarContainer = contentEl.createDiv({ cls: 'speed-reader-progress-bar' });
 		this.progressBarFill = this.progressBarContainer.createDiv({ cls: 'speed-reader-progress-fill' });
+		this.progressBarTooltip = this.progressBarContainer.createDiv({ cls: 'speed-reader-progress-tooltip is-hidden' });
 		this.progressBarContainer.addEventListener('click', (event) => this.onProgressClick(event));
+		this.progressBarContainer.addEventListener('mousemove', (event) => this.onProgressHover(event));
+		this.progressBarContainer.addEventListener('mouseleave', () => {
+			this.progressBarTooltip.addClass('is-hidden');
+		});
 
 		this.controlsEl = contentEl.createDiv({ cls: 'speed-reader-controls' });
 
@@ -331,6 +345,22 @@ export class SpeedReaderModal extends Modal {
 		const percentage = (event.clientX - rect.left) / rect.width;
 		this.engine.seekToPercent(percentage);
 		this.refocusContent();
+	}
+
+	private onProgressHover(event: MouseEvent) {
+		const state = this.state;
+		if (!state || state.totalWords === 0) return;
+
+		const rect = this.progressBarContainer.getBoundingClientRect();
+		if (rect.width <= 0) return;
+
+		const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+		const targetWord = Math.min(Math.floor(ratio * state.totalWords) + 1, state.totalWords);
+		const percentage = Math.round(ratio * 100);
+
+		this.progressBarTooltip.setText(`${targetWord}/${state.totalWords} (${percentage}%)`);
+		this.progressBarTooltip.style.left = `${ratio * 100}%`;
+		this.progressBarTooltip.removeClass('is-hidden');
 	}
 
 	private render() {
