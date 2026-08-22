@@ -19,16 +19,17 @@ Use it when you want to:
 
 ## Features
 
-- **Word-by-word reading** — Read in a focused RSVP view instead of scanning full paragraphs.
-- **Optimal recognition point highlighting** — Highlights the key letter in each word to help your eyes recognize words faster.
-- **Markdown-aware cleanup** — Removes formatting noise like links, callouts, tables, code, frontmatter, footnotes, and comments before reading.
-- **Natural pacing & soft start** — Adds small pauses at punctuation, numbers, and longer words, plus a smooth ramp-up on resume.
-- **Post-read summary** — View words read, time taken, and effective average WPM upon completion.
-- **Font customization** — Choose default, monospace (fixed pitch for zero-jitter optical centering), or sans-serif.
-- **Live speed control** — Change WPM, skip forward or backward, and jump between sections while reading.
-- **Focus mode** — Hide controls and keep only the current word on screen.
-- **Adjustable, always-readable display** — Set the reading window width, and the focus letter stays centered on the guide while long words auto-fit (or wrap) so they never get cut off.
-- **Selection support** — Read selected text, or start from the whole note.
+- **Word-by-word reading.** Read in a focused RSVP view instead of scanning full paragraphs.
+- **Optimal recognition point highlighting.** Highlights the key letter in each word to help your eyes recognize words faster.
+- **Markdown-aware cleanup.** Strips formatting noise like links, callouts, tables, code blocks, frontmatter, footnotes, and math equations before reading.
+- **Natural pacing and soft start.** Adds small pauses at punctuation, numbers, and longer words, with a smooth speed ramp on resume.
+- **Post-read summary.** Shows words read, elapsed time, and effective average WPM upon completion.
+- **Font customization.** Choose between default, monospace for fixed-pitch optical centering, or sans-serif.
+- **Adjustable, auto-fitting display.** Configure reading window width with centered ORP alignment and proportional auto-fit so long words never clip.
+- **Arabic and RTL script support.** Preserves cursive ligatures in connected scripts using CSS gradient text highlights.
+- **Live speed control.** Change WPM, skip forward or backward, and jump between sections while reading.
+- **Focus mode.** Hide controls and keep only the current word on screen.
+- **Selection support.** Read selected text or start from the entire note.
 
 ## How it works
 
