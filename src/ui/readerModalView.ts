@@ -1,6 +1,16 @@
-import { App, Modal, Notice } from 'obsidian';
+import { App, Modal, Notice, Platform } from 'obsidian';
 import { RSVPEngine } from '../engine/rsvpEngine';
 import { HeadingInfo, ReaderState, SpeedReaderSettings, WordData } from '../types';
+import { fitWordFont, FIT_SAFETY, MIN_WORD_FONT_SIZE } from '../services/fontFitter';
+
+/** A non-zero window max width below this (px) would render an unusable reader, so it is floored. */
+const MIN_MODAL_MAX_WIDTH = 400;
+/** Mirror styles.css: the `.speed-reader-word` gap and the halves'/ORP letter-spacing. */
+const WORD_GAP_REM = 0.45;
+const LETTER_SPACING_EM = 0.02;
+/** Mirror styles.css font weights: the halves render at 500, the ORP glyph at 700. */
+const HALF_WORD_WEIGHT = 500;
+const ORP_WEIGHT = 700;
 
 function formatRemainingTime(milliseconds: number): string {
 	const totalSeconds = Math.ceil(milliseconds / 1000);
@@ -42,6 +52,14 @@ export class SpeedReaderModal extends Modal {
 	private contextEl!: HTMLElement;
 	private sectionSelect!: HTMLSelectElement;
 
+	private measureCtx: CanvasRenderingContext2D | null = null;
+	private availableWidth = 0;
+	private remPx = 16;
+	private fontFamily = '';
+	private resizeObserver: ResizeObserver | null = null;
+	private resizeScheduled = false;
+	private lastMeasuredWidth = -1;
+
 	constructor(
 		app: App,
 		text: string,
@@ -72,6 +90,18 @@ export class SpeedReaderModal extends Modal {
 		this.ownerDoc = this.containerEl.ownerDocument;
 		const { contentEl, modalEl } = this;
 		modalEl.addClass('speed-reader-modal');
+		// On mobile, keep Obsidian's native (near full-screen) modal sizing.
+		if (!Platform.isMobile) {
+			// Obsidian's --modal-width custom property is not honored by every theme/version
+			// (the modal then sizes to its content), so set width/max-width directly and with
+			// priority so the configured size always wins.
+			const modalWidth = `min(${this.settings.windowWidth}vw, calc(100vw - 4rem))`;
+			const cappedMax = this.settings.windowMaxWidth > 0
+				? Math.max(this.settings.windowMaxWidth, MIN_MODAL_MAX_WIDTH)
+				: 0;
+			modalEl.style.setProperty('width', modalWidth, 'important');
+			modalEl.style.setProperty('max-width', cappedMax > 0 ? `${cappedMax}px` : 'none', 'important');
+		}
 		contentEl.empty();
 		contentEl.addClass('speed-reader-content');
 		contentEl.setAttr('tabindex', '-1');
@@ -91,6 +121,16 @@ export class SpeedReaderModal extends Modal {
 
 		this.controlsEl = contentEl.createDiv({ cls: 'speed-reader-controls' });
 
+		this.refreshMetrics();
+		this.resizeObserver = new ResizeObserver(() => this.onContainerResize());
+		this.resizeObserver.observe(this.wordContainer);
+		void this.ownerDoc.fonts?.ready.then(() => {
+			if (this.contentEl.isConnected) {
+				this.refreshMetrics();
+				if (this.state) this.render();
+			}
+		});
+
 		this.registerKeyboardHandlers();
 		this.registerFocusHandlers();
 		this.engine.loadText(this.sourceText, this.startOffset);
@@ -98,6 +138,8 @@ export class SpeedReaderModal extends Modal {
 	}
 
 	onClose() {
+		this.resizeObserver?.disconnect();
+		this.resizeObserver = null;
 		this.ownerDoc.removeEventListener('visibilitychange', this.boundVisibilityHandler);
 		this.ownerDoc.defaultView?.removeEventListener('blur', this.boundBlurHandler);
 		this.engine.pause();
@@ -263,20 +305,121 @@ export class SpeedReaderModal extends Modal {
 		}
 
 		const wordWrapper = this.wordContainer.createDiv({ cls: 'speed-reader-word' });
+		this.applyWordFit(wordWrapper, state.chunk);
 		for (const word of state.chunk) {
 			this.renderWordUnit(wordWrapper, word);
 		}
 	}
 
+	private splitWord(word: WordData): { before: string; orp: string; after: string } {
+		return {
+			before: word.word.slice(0, word.orpIndex),
+			orp: word.word.charAt(word.orpIndex),
+			after: `${word.word.slice(word.orpIndex + 1)}${word.punctuation}`
+		};
+	}
+
 	private renderWordUnit(parent: HTMLElement, word: WordData) {
 		const unit = parent.createSpan({ cls: 'speed-reader-word-unit' });
-		const before = word.word.slice(0, word.orpIndex);
-		const orp = word.word.charAt(word.orpIndex);
-		const after = word.word.slice(word.orpIndex + 1);
+		const { before, orp, after } = this.splitWord(word);
 
 		unit.createSpan({ cls: 'speed-reader-left', text: before });
 		unit.createSpan({ cls: 'speed-reader-orp', text: orp });
-		unit.createSpan({ cls: 'speed-reader-right', text: `${after}${word.punctuation}` });
+		unit.createSpan({ cls: 'speed-reader-right', text: after });
+	}
+
+	private refreshMetrics() {
+		const cs = getComputedStyle(this.wordContainer);
+		const padL = parseFloat(cs.paddingLeft) || 0;
+		const padR = parseFloat(cs.paddingRight) || 0;
+		this.availableWidth = this.wordContainer.clientWidth - padL - padR;
+		this.fontFamily = cs.getPropertyValue('--font-text').trim() || 'sans-serif';
+		this.remPx = parseFloat(getComputedStyle(this.ownerDoc.documentElement).fontSize) || 16;
+		this.lastMeasuredWidth = this.wordContainer.clientWidth;
+	}
+
+	private onContainerResize() {
+		if (this.resizeScheduled) return;
+		this.resizeScheduled = true;
+		requestAnimationFrame(() => {
+			this.resizeScheduled = false;
+			if (!this.resizeObserver || !this.wordContainer.isConnected) return;
+			if (this.wordContainer.clientWidth === this.lastMeasuredWidth) return;
+			this.refreshMetrics();
+			if (this.state) this.render();
+		});
+	}
+
+	private getMeasureCtx(): CanvasRenderingContext2D | null {
+		if (!this.measureCtx) {
+			this.measureCtx = this.ownerDoc.createElement('canvas').getContext('2d');
+		}
+		return this.measureCtx;
+	}
+
+	private measurePart(text: string, weight: number): number {
+		const ctx = this.getMeasureCtx();
+		if (!ctx) return 0;
+		ctx.font = `${weight} ${this.settings.fontSize}px ${this.fontFamily}`;
+		const styled = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+		styled.letterSpacing = `${LETTER_SPACING_EM * this.settings.fontSize}px`;
+		return ctx.measureText(text).width;
+	}
+
+	private measureWordParts(word: WordData): { left: number; orp: number; right: number } {
+		const { before, orp, after } = this.splitWord(word);
+		return {
+			left: this.measurePart(before, HALF_WORD_WEIGHT),
+			orp: this.measurePart(orp, ORP_WEIGHT),
+			right: this.measurePart(after, HALF_WORD_WEIGHT)
+		};
+	}
+
+	private applyWordFit(wordWrapper: HTMLElement, chunk: WordData[]) {
+		const shared = {
+			baseFontSize: this.settings.fontSize,
+			availableWidth: this.availableWidth,
+			// Height is not constrained: the modal is content-sized and grows to
+			// fit, so width is the only fit axis.
+			availableHeight: 0,
+			lineHeight: 0,
+			minFontSize: MIN_WORD_FONT_SIZE,
+			safety: FIT_SAFETY
+		};
+
+		if (chunk.length === 1) {
+			const word = chunk[0];
+			if (!word) return;
+			const parts = this.measureWordParts(word);
+			const fit = fitWordFont({
+				...shared,
+				leftWidth: parts.left,
+				orpWidth: parts.orp,
+				rightWidth: parts.right,
+				gap: 0,
+				pinned: true
+			});
+			wordWrapper.style.fontSize = `${fit.fontSize}px`;
+			wordWrapper.toggleClass('is-pinned', !fit.wrap);
+			wordWrapper.toggleClass('is-wrapping', fit.wrap);
+			return;
+		}
+
+		let totalTextWidth = 0;
+		for (const word of chunk) {
+			const parts = this.measureWordParts(word);
+			totalTextWidth += parts.left + parts.orp + parts.right;
+		}
+		const gapPx = WORD_GAP_REM * this.remPx * (chunk.length - 1);
+		const fit = fitWordFont({
+			...shared,
+			leftWidth: totalTextWidth,
+			orpWidth: 0,
+			rightWidth: 0,
+			gap: gapPx,
+			pinned: false
+		});
+		wordWrapper.style.fontSize = `${fit.fontSize}px`;
 	}
 
 	private renderStats(state: ReaderState) {

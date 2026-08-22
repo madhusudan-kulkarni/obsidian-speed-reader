@@ -17,6 +17,8 @@ export interface SpeedReaderSettings {
 	wpm: number;
 	chunkSize: number;
 	fontSize: number;
+	windowWidth: number;
+	windowMaxWidth: number;
 	orpColor: string;
 	showContext: boolean;
 	contextWords: number;
@@ -48,6 +50,8 @@ export const DEFAULT_SETTINGS: SpeedReaderSettings = {
 	wpm: 300,
 	chunkSize: 1,
 	fontSize: 64,
+	windowWidth: 95,
+	windowMaxWidth: 780,
 	orpColor: '',
 	showContext: false,
 	contextWords: 3,

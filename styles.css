@@ -2,12 +2,10 @@
    Speed Reader Plugin Styles
    ============================================== */
 
-/* Modal container with accent glow border */
-.speed-reader-modal {
-	--modal-width: 95vw;
-	--modal-max-width: 780px;
-}
-
+/* Modal container with accent glow border.
+   The reader window width is applied inline on the modal element at runtime
+   (see readerModalView.ts) — Obsidian's --modal-width var is not honored by all
+   themes/versions, so width/max-width are set directly there. */
 .speed-reader-modal .modal {
 	border: 2px solid var(--interactive-accent);
 	box-shadow:
@@ -56,6 +54,7 @@
 	top: 20%;
 	bottom: 20%;
 	left: 50%;
+	transform: translateX(-50%);
 	width: 2px;
 	background: linear-gradient(to bottom,
 			transparent 0%,
@@ -97,6 +96,58 @@
 	align-items: baseline;
 }
 
+/* Pinned single word: left/right are equal columns so the ORP letter is
+   always centered on the guide line, regardless of word length. */
+.speed-reader-word.is-pinned {
+	width: 100%;
+	flex-wrap: nowrap;
+	gap: 0;
+}
+
+.speed-reader-word.is-pinned .speed-reader-word-unit {
+	display: flex;
+	width: 100%;
+	min-width: 0;
+	align-items: baseline;
+}
+
+.speed-reader-word.is-pinned .speed-reader-left {
+	flex: 1 1 0;
+	min-width: 0;
+	white-space: nowrap;
+}
+
+.speed-reader-word.is-pinned .speed-reader-orp {
+	flex: 0 0 auto;
+}
+
+.speed-reader-word.is-pinned .speed-reader-right {
+	flex: 1 1 0;
+	min-width: 0;
+	white-space: nowrap;
+}
+
+/* Below-floor fallback: drop the pin so the single long word wraps
+   (centered) instead of being clipped. */
+.speed-reader-word.is-wrapping {
+	width: 100%;
+	flex-wrap: wrap;
+}
+
+.speed-reader-word.is-wrapping .speed-reader-word-unit {
+	display: block;
+	max-width: 100%;
+	text-align: center;
+}
+
+.speed-reader-word.is-wrapping .speed-reader-left,
+.speed-reader-word.is-wrapping .speed-reader-orp,
+.speed-reader-word.is-wrapping .speed-reader-right {
+	display: inline;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
 @keyframes speed-reader-word-appear {
 	from {
 		opacity: 0.5;
@@ -109,8 +160,10 @@
 
 .speed-reader-left {
 	text-align: right;
-	min-width: calc(var(--speed-reader-font-size, 4rem) * 1.5);
+	min-width: 0;
 	color: var(--text-muted);
+	overflow-wrap: anywhere;
+	word-break: break-word;
 }
 
 .speed-reader-orp {
@@ -120,8 +173,10 @@
 
 .speed-reader-right {
 	text-align: left;
-	min-width: calc(var(--speed-reader-font-size, 4rem) * 1.5);
+	min-width: 0;
 	color: var(--text-muted);
+	overflow-wrap: anywhere;
+	word-break: break-word;
 }
 
 .speed-reader-context {
@@ -470,7 +525,6 @@
 	.speed-reader-word-container {
 		min-height: 120px;
 		padding: 1rem;
-		--speed-reader-font-size: clamp(2rem, 6vw, 3rem);
 	}
 
 	.speed-reader-stats {
