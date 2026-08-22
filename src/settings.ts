@@ -72,6 +72,16 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName('Soft start')
+			.setDesc('Gradually ramp up speed on start or resume to help eyes adjust.')
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.enableRampUp)
+				.onChange(async (value) => {
+					this.plugin.settings.enableRampUp = value;
+					await this.plugin.saveSettings();
+				}));
+
 		this.addSliderWithInput(
 			containerEl,
 			'Pause intensity',
@@ -87,6 +97,19 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 		);
 
 		new Setting(containerEl).setName('Display').setHeading();
+
+		new Setting(containerEl)
+			.setName('Font family')
+			.setDesc('Choose font style for the reading display.')
+			.addDropdown((dropdown) => dropdown
+				.addOption('default', 'Default')
+				.addOption('monospace', 'Monospace (fixed pitch)')
+				.addOption('sans-serif', 'Sans-serif')
+				.setValue(this.plugin.settings.fontFamily)
+				.onChange(async (value) => {
+					this.plugin.settings.fontFamily = value as 'default' | 'monospace' | 'sans-serif';
+					await this.plugin.saveSettings();
+				}));
 
 		this.addSliderWithInput(
 			containerEl,

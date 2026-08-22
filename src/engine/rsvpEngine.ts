@@ -16,6 +16,9 @@ export class RSVPEngine {
 	private onStateChange: (state: ReaderState) => void;
 	private onComplete: () => void;
 	private micropauseService: MicropauseService;
+	private rampStep = 0;
+	private accumulatedElapsedMs = 0;
+	private playSessionStartTime: number | null = null;
 
 	constructor(
 		settings: SpeedReaderSettings,
@@ -33,6 +36,9 @@ export class RSVPEngine {
 		this.words = parsed.words;
 		this.headings = parsed.headings;
 		this.currentIndex = clamp(parsed.startWordIndex, 0, Math.max(this.words.length - 1, 0));
+		this.rampStep = 0;
+		this.accumulatedElapsedMs = 0;
+		this.playSessionStartTime = null;
 		this.emitState(false);
 	}
 
@@ -58,6 +64,7 @@ export class RSVPEngine {
 
 		if (this.currentIndex >= this.words.length) {
 			this.currentIndex = 0;
+			this.accumulatedElapsedMs = 0;
 		}
 
 		if (this.isPlaying) {
@@ -65,6 +72,8 @@ export class RSVPEngine {
 		}
 
 		this.isPlaying = true;
+		this.rampStep = 0;
+		this.playSessionStartTime = Date.now();
 		this.runLoop();
 	}
 
@@ -73,7 +82,12 @@ export class RSVPEngine {
 			window.clearTimeout(this.timeoutId);
 			this.timeoutId = null;
 		}
+		if (this.isPlaying && this.playSessionStartTime !== null) {
+			this.accumulatedElapsedMs += Date.now() - this.playSessionStartTime;
+			this.playSessionStartTime = null;
+		}
 		this.isPlaying = false;
+		this.rampStep = 0;
 		this.emitState(false);
 	}
 
@@ -86,6 +100,8 @@ export class RSVPEngine {
 	}
 
 	restart() {
+		this.accumulatedElapsedMs = 0;
+		this.playSessionStartTime = null;
 		this.seekToIndex(0);
 		this.play();
 	}
@@ -98,9 +114,33 @@ export class RSVPEngine {
 		this.seekToIndex(this.currentIndex + count);
 	}
 
+	nextHeading() {
+		const next = this.headings.find((h) => h.wordIndex > this.currentIndex);
+		if (next) {
+			this.seekToIndex(next.wordIndex);
+		}
+	}
+
+	previousHeading() {
+		let prev: HeadingInfo | null = null;
+		for (const h of this.headings) {
+			if (h.wordIndex < this.currentIndex - 1) {
+				prev = h;
+			} else {
+				break;
+			}
+		}
+		if (prev) {
+			this.seekToIndex(prev.wordIndex);
+		} else {
+			this.seekToIndex(0);
+		}
+	}
+
 	seekToIndex(index: number) {
 		const last = Math.max(this.words.length - 1, 0);
 		this.currentIndex = clamp(index, 0, last);
+		this.rampStep = 0;
 		this.emitState(false);
 
 		if (this.isPlaying) {
@@ -144,6 +184,10 @@ export class RSVPEngine {
 		}
 
 		if (this.currentIndex >= this.words.length) {
+			if (this.playSessionStartTime !== null) {
+				this.accumulatedElapsedMs += Date.now() - this.playSessionStartTime;
+				this.playSessionStartTime = null;
+			}
 			this.isPlaying = false;
 			this.emitState(true);
 			this.onComplete();
@@ -155,6 +199,7 @@ export class RSVPEngine {
 		const delay = this.getCurrentDelay();
 		this.timeoutId = window.setTimeout(() => {
 			this.currentIndex += this.settings.chunkSize;
+			this.rampStep++;
 			this.timeoutId = null;
 			this.runLoop();
 		}, delay);
@@ -188,6 +233,11 @@ export class RSVPEngine {
 
 		if (this.settings.enableMicropause && this.startsAtHeading(this.currentIndex)) {
 			multiplier = Math.max(multiplier, 1 + (1.8 - 1) * this.settings.micropauseIntensity);
+		}
+
+		if (this.settings.enableRampUp && this.rampStep < 3) {
+			const rampFactors = [1.6, 1.3, 1.1];
+			multiplier *= (rampFactors[this.rampStep] ?? 1);
 		}
 
 		return baseDelay * multiplier;
@@ -252,6 +302,14 @@ export class RSVPEngine {
 		return total;
 	}
 
+	private getElapsedTimeMs(): number {
+		let total = this.accumulatedElapsedMs;
+		if (this.isPlaying && this.playSessionStartTime !== null) {
+			total += Date.now() - this.playSessionStartTime;
+		}
+		return total;
+	}
+
 	private emitState(finished: boolean) {
 		const chunk = this.getCurrentChunk();
 		const totalWords = this.words.length;
@@ -266,6 +324,7 @@ export class RSVPEngine {
 			finished,
 			currentWpm: this.settings.wpm,
 			timeRemainingMs: this.calculateRemainingMs(),
+			elapsedTimeMs: this.getElapsedTimeMs(),
 			currentHeading: this.getCurrentHeading()
 		});
 	}

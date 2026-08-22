@@ -491,6 +491,15 @@
    Done State
    ============================================== */
 
+/* Font family variations */
+.speed-reader-word-container.font-monospace .speed-reader-word {
+	font-family: var(--font-monospace);
+}
+
+.speed-reader-word-container.font-sans-serif .speed-reader-word {
+	font-family: var(--font-interface, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+}
+
 .speed-reader-done {
 	display: flex;
 	flex-direction: column;
@@ -500,19 +509,58 @@
 }
 
 .speed-reader-done-icon {
-	font-size: 3rem;
+	font-size: 2.5rem;
 	color: var(--text-success);
 	line-height: 1;
 }
 
-.speed-reader-done-text {
+.speed-reader-done-title {
+	font-size: 1.15rem;
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.speed-reader-summary-metrics {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1.5rem;
+	margin: 0.4rem 0;
+	padding: 0.5rem 1.2rem;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.speed-reader-summary-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.15rem;
+}
+
+.speed-reader-summary-value {
 	font-size: 1.1rem;
-	color: var(--text-muted);
-	font-weight: 500;
+	font-weight: 700;
+	color: var(--interactive-accent);
+	font-family: var(--font-monospace);
+}
+
+.speed-reader-summary-label {
+	font-size: 0.7rem;
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.speed-reader-summary-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-top: 0.25rem;
 }
 
 .speed-reader-restart-btn {
-	margin-top: 0.5rem;
 	padding: 0.4rem 1rem;
 	font-size: 0.9rem;
 	font-weight: 500;
@@ -530,6 +578,28 @@
 }
 
 .speed-reader-restart-btn:active {
+	transform: scale(0.96);
+}
+
+.speed-reader-close-btn {
+	padding: 0.4rem 1rem;
+	font-size: 0.9rem;
+	font-weight: 500;
+	color: var(--text-muted);
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	cursor: pointer;
+	transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.speed-reader-close-btn:hover {
+	transform: scale(1.04);
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.speed-reader-close-btn:active {
 	transform: scale(0.96);
 }
 

@@ -21,8 +21,10 @@ Use it when you want to:
 
 - **Word-by-word reading** — Read in a focused RSVP view instead of scanning full paragraphs.
 - **Optimal recognition point highlighting** — Highlights the key letter in each word to help your eyes recognize words faster.
-- **Markdown-aware cleanup** — Removes formatting noise like links, bold text, code, frontmatter, and comments before reading.
-- **Natural pacing** — Adds small pauses at punctuation, numbers, and longer words so the flow feels less robotic.
+- **Markdown-aware cleanup** — Removes formatting noise like links, callouts, tables, code, frontmatter, footnotes, and comments before reading.
+- **Natural pacing & soft start** — Adds small pauses at punctuation, numbers, and longer words, plus a smooth ramp-up on resume.
+- **Post-read summary** — View words read, time taken, and effective average WPM upon completion.
+- **Font customization** — Choose default, monospace (fixed pitch for zero-jitter optical centering), or sans-serif.
 - **Live speed control** — Change WPM, skip forward or backward, and jump between sections while reading.
 - **Focus mode** — Hide controls and keep only the current word on screen.
 - **Adjustable, always-readable display** — Set the reading window width, and the focus letter stays centered on the guide while long words auto-fit (or wrap) so they never get cut off.
@@ -40,7 +42,10 @@ Use it when you want to:
 | Key | Action |
 |---|---|
 | `Space` | Play / pause |
+| `R` | Restart from beginning |
 | `←` / `→` | Skip 10 words |
+| `[` / `]` | Jump to previous / next section |
+| `Home` / `0` | Seek to start |
 | `↑` / `↓` | Change speed by 25 WPM |
 | `F` | Toggle focus mode |
 | `Esc` | Close reader |

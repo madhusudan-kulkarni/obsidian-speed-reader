@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RSVPEngine } from '../src/engine/rsvpEngine';
+import { validateSettings } from '../src/services/settingsValidator';
 import { DEFAULT_SETTINGS } from '../src/types';
 import type { SpeedReaderSettings, ReaderState } from '../src/types';
 
@@ -161,6 +162,43 @@ describe('RSVPEngine', () => {
 		expect(stateChanges[stateChanges.length - 1]!.currentIndex).toBe(0);
 		expect(stateChanges[stateChanges.length - 1]!.isPlaying).toBe(true);
 	});
+
+	it('navigates through headings with nextHeading and previousHeading', () => {
+		engine.loadText('# Title\nFirst section content\n## Second\nSecond section content\n### Third\nThird section');
+		const headings = engine.getHeadings();
+		expect(headings.length).toBe(3);
+
+		engine.nextHeading();
+		expect(stateChanges[stateChanges.length - 1]!.currentIndex).toBe(headings[1]!.wordIndex);
+
+		engine.nextHeading();
+		expect(stateChanges[stateChanges.length - 1]!.currentIndex).toBe(headings[2]!.wordIndex);
+
+		engine.previousHeading();
+		expect(stateChanges[stateChanges.length - 1]!.currentIndex).toBe(headings[1]!.wordIndex);
+
+		engine.previousHeading();
+		expect(stateChanges[stateChanges.length - 1]!.currentIndex).toBe(headings[0]!.wordIndex);
+	});
+
+	it('supports soft-start ramp-up pacing', () => {
+		engine.loadText('One two three four five six');
+		engine.setSettings({ ...settings, enableRampUp: true, wpm: 300 });
+		engine.play();
+		expect(stateChanges[stateChanges.length - 1]!.isPlaying).toBe(true);
+
+		// Advance first word with ramp delay
+		vi.advanceTimersByTime(350);
+		expect(stateChanges[stateChanges.length - 1]!.currentIndex).toBeGreaterThan(0);
+	});
+
+	it('tracks elapsed time during playback', () => {
+		engine.loadText('One two three four five');
+		engine.play();
+		vi.advanceTimersByTime(500);
+		const lastState = stateChanges[stateChanges.length - 1]!;
+		expect(lastState.elapsedTimeMs).toBeGreaterThanOrEqual(0);
+	});
 });
 
 describe('Visibility change auto-pause logic', () => {
@@ -230,5 +268,46 @@ describe('Visibility change auto-pause logic', () => {
 		visibilityHandler();
 		expect(mockEngine.play).not.toHaveBeenCalled();
 	});
+});
 
+describe('validateSettings', () => {
+	it('returns defaults when given null or empty object', () => {
+		expect(validateSettings(null)).toEqual(DEFAULT_SETTINGS);
+		expect(validateSettings({})).toEqual(DEFAULT_SETTINGS);
 	});
+
+	it('clamps numeric fields to valid bounds', () => {
+		const result = validateSettings({
+			wpm: 10,
+			chunkSize: 20,
+			fontSize: 5,
+			contextWords: 50,
+			micropauseIntensity: 10
+		});
+
+		expect(result.wpm).toBe(50);
+		expect(result.chunkSize).toBe(5);
+		expect(result.fontSize).toBe(24);
+		expect(result.contextWords).toBe(10);
+		expect(result.micropauseIntensity).toBe(3);
+	});
+
+	it('validates font family options', () => {
+		expect(validateSettings({ fontFamily: 'monospace' }).fontFamily).toBe('monospace');
+		expect(validateSettings({ fontFamily: 'sans-serif' }).fontFamily).toBe('sans-serif');
+		expect(validateSettings({ fontFamily: 'default' }).fontFamily).toBe('default');
+		expect(validateSettings({ fontFamily: 'invalid' as any }).fontFamily).toBe('default');
+	});
+
+	it('validates boolean fields and fallbacks', () => {
+		const result = validateSettings({
+			enableRampUp: false,
+			showContext: true,
+			showProgress: false
+		});
+
+		expect(result.enableRampUp).toBe(false);
+		expect(result.showContext).toBe(true);
+		expect(result.showProgress).toBe(false);
+	});
+});

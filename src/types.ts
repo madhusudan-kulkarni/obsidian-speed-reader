@@ -13,12 +13,15 @@ export interface HeadingInfo {
 	wordIndex: number;
 }
 
+export type FontFamilyOption = 'default' | 'monospace' | 'sans-serif';
+
 export interface SpeedReaderSettings {
 	wpm: number;
 	chunkSize: number;
 	fontSize: number;
 	windowWidth: number;
 	windowMaxWidth: number;
+	fontFamily: FontFamilyOption;
 	orpColor: string;
 	showContext: boolean;
 	contextWords: number;
@@ -26,6 +29,7 @@ export interface SpeedReaderSettings {
 	showStats: boolean;
 	enableMicropause: boolean;
 	micropauseIntensity: number;
+	enableRampUp: boolean;
 }
 
 export interface ReaderState {
@@ -37,6 +41,7 @@ export interface ReaderState {
 	finished: boolean;
 	currentWpm: number;
 	timeRemainingMs: number;
+	elapsedTimeMs: number;
 	currentHeading: HeadingInfo | null;
 }
 
@@ -52,11 +57,13 @@ export const DEFAULT_SETTINGS: SpeedReaderSettings = {
 	fontSize: 64,
 	windowWidth: 95,
 	windowMaxWidth: 780,
+	fontFamily: 'default',
 	orpColor: '',
 	showContext: false,
 	contextWords: 3,
 	showProgress: true,
 	showStats: true,
 	enableMicropause: true,
-	micropauseIntensity: 1.5
+	micropauseIntensity: 1.5,
+	enableRampUp: true
 };

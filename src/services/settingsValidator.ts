@@ -25,6 +25,13 @@ function toString(value: unknown, fallback: string): string {
 	return fallback;
 }
 
+function toFontFamily(value: unknown): 'default' | 'monospace' | 'sans-serif' {
+	if (value === 'monospace' || value === 'sans-serif' || value === 'default') {
+		return value;
+	}
+	return DEFAULT_SETTINGS.fontFamily;
+}
+
 export function validateSettings(raw: Partial<SpeedReaderSettings> | null | undefined): SpeedReaderSettings {
 	const settings = { ...DEFAULT_SETTINGS, ...(raw ?? {}) };
 
@@ -34,12 +41,14 @@ export function validateSettings(raw: Partial<SpeedReaderSettings> | null | unde
 		fontSize: clamp(Math.round(toNumber(settings.fontSize, DEFAULT_SETTINGS.fontSize)), 24, 200),
 		windowWidth: clamp(Math.round(toNumber(settings.windowWidth, DEFAULT_SETTINGS.windowWidth)), 40, 100),
 		windowMaxWidth: clamp(Math.round(toNumber(settings.windowMaxWidth, DEFAULT_SETTINGS.windowMaxWidth)), 0, 3000),
+		fontFamily: toFontFamily(settings.fontFamily),
 		orpColor: toString(settings.orpColor, DEFAULT_SETTINGS.orpColor),
 		showContext: toBoolean(settings.showContext, DEFAULT_SETTINGS.showContext),
 		contextWords: clamp(Math.round(toNumber(settings.contextWords, DEFAULT_SETTINGS.contextWords)), 1, 10),
 		showProgress: toBoolean(settings.showProgress, DEFAULT_SETTINGS.showProgress),
 		showStats: toBoolean(settings.showStats, DEFAULT_SETTINGS.showStats),
 		enableMicropause: toBoolean(settings.enableMicropause, DEFAULT_SETTINGS.enableMicropause),
-		micropauseIntensity: clamp(toNumber(settings.micropauseIntensity, DEFAULT_SETTINGS.micropauseIntensity), 1, 3)
+		micropauseIntensity: clamp(toNumber(settings.micropauseIntensity, DEFAULT_SETTINGS.micropauseIntensity), 1, 3),
+		enableRampUp: toBoolean(settings.enableRampUp, DEFAULT_SETTINGS.enableRampUp)
 	};
 }

@@ -113,6 +113,7 @@ export class SpeedReaderModal extends Modal {
 		if (this.settings.orpColor) {
 			this.wordContainer.style.setProperty('--speed-reader-orp-color', this.settings.orpColor);
 		}
+		this.applyFontFamily();
 		this.contextEl = contentEl.createDiv({ cls: 'speed-reader-context' });
 		this.statsEl = contentEl.createDiv({ cls: 'speed-reader-stats' });
 
@@ -149,6 +150,15 @@ export class SpeedReaderModal extends Modal {
 		this.measureCanvas?.remove();
 		this.measureCanvas = null;
 		this.measureCtx = null;
+	}
+
+	private applyFontFamily() {
+		this.wordContainer.removeClass('font-monospace', 'font-sans-serif');
+		if (this.settings.fontFamily === 'monospace') {
+			this.wordContainer.addClass('font-monospace');
+		} else if (this.settings.fontFamily === 'sans-serif') {
+			this.wordContainer.addClass('font-sans-serif');
+		}
 	}
 
 	private registerKeyboardHandlers() {
@@ -188,6 +198,30 @@ export class SpeedReaderModal extends Modal {
 			return false;
 		});
 
+		this.scope.register([], '[', (event) => {
+			event.preventDefault();
+			this.engine.previousHeading();
+			return false;
+		});
+
+		this.scope.register([], ']', (event) => {
+			event.preventDefault();
+			this.engine.nextHeading();
+			return false;
+		});
+
+		this.scope.register([], 'Home', (event) => {
+			event.preventDefault();
+			this.engine.seekToIndex(0);
+			return false;
+		});
+
+		this.scope.register([], '0', (event) => {
+			event.preventDefault();
+			this.engine.seekToIndex(0);
+			return false;
+		});
+
 		this.scope.register([], 'f', (event) => {
 			event.preventDefault();
 			this.focusMode = !this.focusMode;
@@ -209,6 +243,15 @@ export class SpeedReaderModal extends Modal {
 			} else if (event.key === 'r' || event.key === 'R') {
 				event.preventDefault();
 				this.engine.restart();
+			} else if (event.key === '[') {
+				event.preventDefault();
+				this.engine.previousHeading();
+			} else if (event.key === ']') {
+				event.preventDefault();
+				this.engine.nextHeading();
+			} else if (event.key === 'Home' || event.key === '0') {
+				event.preventDefault();
+				this.engine.seekToIndex(0);
 			}
 		});
 	}
@@ -313,14 +356,41 @@ export class SpeedReaderModal extends Modal {
 		if (state.finished || state.chunk.length === 0) {
 			const doneEl = this.wordContainer.createDiv({ cls: 'speed-reader-done' });
 			doneEl.createSpan({ text: '✓', cls: 'speed-reader-done-icon' });
-			doneEl.createSpan({ text: 'Finished', cls: 'speed-reader-done-text' });
-			const restartBtn = doneEl.createEl('button', {
+			doneEl.createSpan({ text: 'Reading finished', cls: 'speed-reader-done-title' });
+
+			const metricsEl = doneEl.createDiv({ cls: 'speed-reader-summary-metrics' });
+
+			const wordsMetric = metricsEl.createDiv({ cls: 'speed-reader-summary-item' });
+			wordsMetric.createSpan({ cls: 'speed-reader-summary-value', text: String(state.totalWords) });
+			wordsMetric.createSpan({ cls: 'speed-reader-summary-label', text: 'Words read' });
+
+			const elapsedSec = Math.max(1, Math.round(state.elapsedTimeMs / 1000));
+			const timeString = elapsedSec < 60 ? `${elapsedSec}s` : `${Math.floor(elapsedSec / 60)}m ${elapsedSec % 60}s`;
+			const timeMetric = metricsEl.createDiv({ cls: 'speed-reader-summary-item' });
+			timeMetric.createSpan({ cls: 'speed-reader-summary-value', text: timeString });
+			timeMetric.createSpan({ cls: 'speed-reader-summary-label', text: 'Time taken' });
+
+			const effectiveWpm = Math.round((state.totalWords / (state.elapsedTimeMs / 60000)) || state.currentWpm);
+			const wpmMetric = metricsEl.createDiv({ cls: 'speed-reader-summary-item' });
+			wpmMetric.createSpan({ cls: 'speed-reader-summary-value', text: String(effectiveWpm) });
+			wpmMetric.createSpan({ cls: 'speed-reader-summary-label', text: 'Effective WPM' });
+
+			const actionsEl = doneEl.createDiv({ cls: 'speed-reader-summary-actions' });
+			const restartBtn = actionsEl.createEl('button', {
 				cls: 'speed-reader-restart-btn',
 				text: 'Read again'
 			});
 			restartBtn.addEventListener('click', () => {
 				this.engine.restart();
 				this.refocusContent();
+			});
+
+			const closeBtn = actionsEl.createEl('button', {
+				cls: 'speed-reader-close-btn',
+				text: 'Close'
+			});
+			closeBtn.addEventListener('click', () => {
+				this.close();
 			});
 			return;
 		}
@@ -566,6 +636,8 @@ export class SpeedReaderModal extends Modal {
 		this.createKeyHint('R', 'restart');
 		this.controlsEl.createSpan({ text: ' • ' });
 		this.createKeyHint('←/→', 'skip');
+		this.controlsEl.createSpan({ text: ' • ' });
+		this.createKeyHint('[/]', 'section');
 		this.controlsEl.createSpan({ text: ' • ' });
 		this.createKeyHint('↑/↓', 'speed');
 		this.controlsEl.createSpan({ text: ' • ' });
