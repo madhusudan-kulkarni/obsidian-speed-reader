@@ -50,7 +50,7 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 		);
 
 		new Setting(containerEl)
-			.setName('ORP color')
+			.setName('Orp color')
 			.setDesc('Color for the optimal recognition point highlight. Leave empty to use the theme accent color.')
 			.addText((text) => text
 				.setValue(this.plugin.settings.orpColor)
