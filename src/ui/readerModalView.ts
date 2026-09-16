@@ -45,6 +45,7 @@ export class SpeedReaderModal extends Modal {
 	private boundVisibilityHandler: () => void;
 	private boundBlurHandler: () => void;
 	private blockComponent: Component | null = null;
+	private autoResumeCountdownId: number | null = null;
 
 	private ownerDoc!: Document;
 	private wordContainer!: HTMLElement;
@@ -162,6 +163,7 @@ export class SpeedReaderModal extends Modal {
 		this.resizeObserver = null;
 		this.blockComponent?.unload();
 		this.blockComponent = null;
+		this.clearBlockCountdown();
 		this.ownerDoc.removeEventListener('visibilitychange', this.boundVisibilityHandler);
 		this.ownerDoc.defaultView?.removeEventListener('blur', this.boundBlurHandler);
 		this.engine.pause();
@@ -383,6 +385,9 @@ export class SpeedReaderModal extends Modal {
 		if (!state) return;
 
 		this.contentEl.toggleClass('speed-reader-block-active', !!state.activeBlock);
+		if (!state.activeBlock) {
+			this.clearBlockCountdown();
+		}
 		this.renderWord(state);
 		this.renderStats(state);
 		this.renderProgress(state);
@@ -498,6 +503,31 @@ export class SpeedReaderModal extends Modal {
 			this.engine.resumeFromBlock();
 			this.refocusContent();
 		});
+
+		if (this.settings.autoResumeSeconds > 0) {
+			this.startBlockCountdown(blockEl);
+		}
+	}
+
+	private startBlockCountdown(blockEl: HTMLElement) {
+		const duration = this.settings.autoResumeSeconds;
+		const hint = blockEl.createSpan({ cls: 'speed-reader-block-hint' });
+		const deadline = Date.now() + duration * 1000;
+		this.clearBlockCountdown();
+		this.autoResumeCountdownId = window.setInterval(() => {
+			const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+			hint.setText(`Continues automatically in ${remaining}s`);
+			if (remaining <= 0) {
+				this.clearBlockCountdown();
+			}
+		}, 250);
+	}
+
+	private clearBlockCountdown() {
+		if (this.autoResumeCountdownId !== null) {
+			window.clearInterval(this.autoResumeCountdownId);
+			this.autoResumeCountdownId = null;
+		}
 	}
 
 	private renderBlockContent(block: ReadingBlock, container: HTMLElement) {

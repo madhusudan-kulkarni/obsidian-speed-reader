@@ -52,6 +52,7 @@ export function validateSettings(raw: Partial<SpeedReaderSettings> | null | unde
 		enableRampUp: toBoolean(settings.enableRampUp, DEFAULT_SETTINGS.enableRampUp),
 		pauseForCodeBlocks: toBoolean(settings.pauseForCodeBlocks, DEFAULT_SETTINGS.pauseForCodeBlocks),
 		pauseForMathBlocks: toBoolean(settings.pauseForMathBlocks, DEFAULT_SETTINGS.pauseForMathBlocks),
-		pauseForTableBlocks: toBoolean(settings.pauseForTableBlocks, DEFAULT_SETTINGS.pauseForTableBlocks)
+		pauseForTableBlocks: toBoolean(settings.pauseForTableBlocks, DEFAULT_SETTINGS.pauseForTableBlocks),
+		autoResumeSeconds: clamp(Math.round(toNumber(settings.autoResumeSeconds, DEFAULT_SETTINGS.autoResumeSeconds)), 0, 60)
 	};
 }

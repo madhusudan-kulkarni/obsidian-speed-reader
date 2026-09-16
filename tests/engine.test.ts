@@ -277,6 +277,49 @@ describe('Block pause/resume', () => {
 		expect(last.activeBlock).not.toBeNull();
 		expect(last.currentIndex).toBe(0);
 	});
+
+	it('auto-resumes from a block after the configured delay', () => {
+		engine.setSettings({
+			...settings,
+			autoResumeSeconds: 3,
+			enableRampUp: false,
+			enableMicropause: false,
+			wpm: 300
+		});
+		engine.loadText('Before\n```\ncode\n```\nAfter');
+		engine.play();
+
+		vi.advanceTimersByTime(300);
+
+		let last = stateChanges[stateChanges.length - 1]!;
+		expect(last.activeBlock).not.toBeNull();
+		expect(last.isPlaying).toBe(false);
+
+		vi.advanceTimersByTime(3000);
+
+		last = stateChanges[stateChanges.length - 1]!;
+		expect(last.activeBlock).toBeNull();
+		expect(last.isPlaying).toBe(true);
+	});
+
+	it('does not auto-resume when autoResumeSeconds is 0', () => {
+		engine.setSettings({
+			...settings,
+			autoResumeSeconds: 0,
+			enableRampUp: false,
+			enableMicropause: false,
+			wpm: 300
+		});
+		engine.loadText('Before\n```\ncode\n```\nAfter');
+		engine.play();
+
+		vi.advanceTimersByTime(300);
+		expect(stateChanges[stateChanges.length - 1]!.activeBlock).not.toBeNull();
+
+		vi.advanceTimersByTime(10000);
+		expect(stateChanges[stateChanges.length - 1]!.activeBlock).not.toBeNull();
+		expect(stateChanges[stateChanges.length - 1]!.isPlaying).toBe(false);
+	});
 });
 
 describe('Visibility change auto-pause logic', () => {

@@ -22,7 +22,7 @@ Use it when you want to:
 - **Word-by-word reading.** Read in a focused RSVP view instead of scanning full paragraphs.
 - **Optimal recognition point highlighting.** Highlights the key letter in each word to help your eyes recognize words faster.
 - **Markdown-aware cleanup.** Strips formatting noise like links, callouts, footnotes, and frontmatter before reading.
-- **Block detection and display.** Pauses on fenced code blocks, LaTeX equations (`$$...$$`), and Markdown tables so you can read them in full before continuing. Toggle each type in settings.
+- **Block detection and display.** Pauses on fenced code blocks, LaTeX equations (`$$...$$`), and Markdown tables so you can read them in full before continuing. Toggle each type in settings, and optionally auto-continue after a delay.
 - **Natural pacing and soft start.** Adds small pauses at punctuation, numbers, and longer words, with a smooth speed ramp on resume.
 - **Post-read summary.** Shows words read, elapsed time, and effective average WPM upon completion.
 - **Font customization.** Choose between default, monospace for fixed-pitch optical centering, or sans-serif.

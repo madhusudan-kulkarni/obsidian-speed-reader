@@ -45,6 +45,7 @@ export interface SpeedReaderSettings {
 	pauseForCodeBlocks: boolean;
 	pauseForMathBlocks: boolean;
 	pauseForTableBlocks: boolean;
+	autoResumeSeconds: number;
 }
 
 export interface ReaderState {
@@ -85,5 +86,6 @@ export const DEFAULT_SETTINGS: SpeedReaderSettings = {
 	enableRampUp: true,
 	pauseForCodeBlocks: true,
 	pauseForMathBlocks: true,
-	pauseForTableBlocks: true
+	pauseForTableBlocks: true,
+	autoResumeSeconds: 0
 };

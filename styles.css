@@ -712,6 +712,13 @@
 	transform: scale(0.96);
 }
 
+.speed-reader-block-hint {
+	font-family: var(--font-ui);
+	font-size: 0.72rem;
+	color: var(--text-faint);
+	align-self: center;
+}
+
 /* Hide the ORP guide line and triangle while a block is displayed. */
 .speed-reader-block-active .speed-reader-word-container::before,
 .speed-reader-block-active .speed-reader-word-container::after {

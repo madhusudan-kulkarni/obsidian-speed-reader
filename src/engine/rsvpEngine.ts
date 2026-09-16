@@ -22,6 +22,7 @@ export class RSVPEngine {
 	private playSessionStartTime: number | null = null;
 	private activeBlock: ReadingBlock | null = null;
 	private nextBlockIndex = 0;
+	private autoResumeTimeoutId: number | null = null;
 
 	constructor(
 		settings: SpeedReaderSettings,
@@ -41,6 +42,7 @@ export class RSVPEngine {
 		this.blocks = parsed.blocks;
 		this.currentIndex = clamp(parsed.startWordIndex, 0, Math.max(this.words.length - 1, 0));
 		this.activeBlock = null;
+		this.cancelAutoResume();
 		this.recomputeBlockPointer();
 		this.rampStep = 0;
 		this.accumulatedElapsedMs = 0;
@@ -79,6 +81,7 @@ export class RSVPEngine {
 		}
 
 		this.activeBlock = null;
+		this.cancelAutoResume();
 		this.isPlaying = true;
 		this.rampStep = 0;
 		this.playSessionStartTime = Date.now();
@@ -90,6 +93,7 @@ export class RSVPEngine {
 			window.clearTimeout(this.timeoutId);
 			this.timeoutId = null;
 		}
+		this.cancelAutoResume();
 		if (this.isPlaying && this.playSessionStartTime !== null) {
 			this.accumulatedElapsedMs += Date.now() - this.playSessionStartTime;
 			this.playSessionStartTime = null;
@@ -155,6 +159,7 @@ export class RSVPEngine {
 		const last = Math.max(this.words.length - 1, 0);
 		this.currentIndex = clamp(index, 0, last);
 		this.activeBlock = null;
+		this.cancelAutoResume();
 		this.recomputeBlockPointer();
 		this.rampStep = 0;
 		this.emitState(false);
@@ -287,6 +292,26 @@ export class RSVPEngine {
 		this.activeBlock = block;
 		this.nextBlockIndex++;
 		this.emitState(false);
+		this.scheduleAutoResume();
+	}
+
+	private scheduleAutoResume() {
+		this.cancelAutoResume();
+		if (this.settings.autoResumeSeconds > 0) {
+			this.autoResumeTimeoutId = window.setTimeout(() => {
+				this.autoResumeTimeoutId = null;
+				if (this.activeBlock) {
+					this.resumeFromBlock();
+				}
+			}, this.settings.autoResumeSeconds * 1000);
+		}
+	}
+
+	private cancelAutoResume() {
+		if (this.autoResumeTimeoutId !== null) {
+			window.clearTimeout(this.autoResumeTimeoutId);
+			this.autoResumeTimeoutId = null;
+		}
 	}
 
 	private recomputeBlockPointer() {

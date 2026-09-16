@@ -229,6 +229,20 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 					this.plugin.settings.pauseForTableBlocks = value;
 					await this.plugin.saveSettings();
 				}));
+
+		this.addSliderWithInput(
+			containerEl,
+			'Auto-continue after',
+			'Seconds to wait before automatically resuming after a block (0 = wait for you to press a key or button).',
+			0,
+			60,
+			1,
+			this.plugin.settings.autoResumeSeconds,
+			async (value) => {
+				this.plugin.settings.autoResumeSeconds = value;
+				await this.plugin.saveSettings();
+			}
+		);
 	}
 
 	private addSliderWithInput(
