@@ -121,7 +121,7 @@ export class SpeedReaderModal extends Modal {
 		}
 		this.applyFontFamily();
 		this.wordContainer.addEventListener('click', (event) => {
-			if ((event.target as HTMLElement).closest('.speed-reader-restart-btn, .speed-reader-close-btn')) {
+			if ((event.target as HTMLElement).closest('.speed-reader-restart-btn, .speed-reader-close-btn, .speed-reader-resume-btn')) {
 				return;
 			}
 			this.engine.togglePlayPause();
@@ -499,7 +499,8 @@ export class SpeedReaderModal extends Modal {
 			cls: 'speed-reader-resume-btn',
 			text: 'Continue reading'
 		});
-		resumeBtn.addEventListener('click', () => {
+		resumeBtn.addEventListener('click', (event) => {
+			event.stopPropagation();
 			this.engine.resumeFromBlock();
 			this.refocusContent();
 		});
