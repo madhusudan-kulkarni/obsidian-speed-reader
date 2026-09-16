@@ -49,6 +49,9 @@ export function validateSettings(raw: Partial<SpeedReaderSettings> | null | unde
 		showStats: toBoolean(settings.showStats, DEFAULT_SETTINGS.showStats),
 		enableMicropause: toBoolean(settings.enableMicropause, DEFAULT_SETTINGS.enableMicropause),
 		micropauseIntensity: clamp(toNumber(settings.micropauseIntensity, DEFAULT_SETTINGS.micropauseIntensity), 1, 3),
-		enableRampUp: toBoolean(settings.enableRampUp, DEFAULT_SETTINGS.enableRampUp)
+		enableRampUp: toBoolean(settings.enableRampUp, DEFAULT_SETTINGS.enableRampUp),
+		pauseForCodeBlocks: toBoolean(settings.pauseForCodeBlocks, DEFAULT_SETTINGS.pauseForCodeBlocks),
+		pauseForMathBlocks: toBoolean(settings.pauseForMathBlocks, DEFAULT_SETTINGS.pauseForMathBlocks),
+		pauseForTableBlocks: toBoolean(settings.pauseForTableBlocks, DEFAULT_SETTINGS.pauseForTableBlocks)
 	};
 }

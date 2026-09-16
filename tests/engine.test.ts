@@ -201,6 +201,84 @@ describe('RSVPEngine', () => {
 	});
 });
 
+describe('Block pause/resume', () => {
+	let engine: RSVPEngine;
+	let stateChanges: ReaderState[];
+	let settings: SpeedReaderSettings;
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		stateChanges = [];
+		settings = { ...DEFAULT_SETTINGS };
+		engine = new RSVPEngine(
+			settings,
+			(state) => stateChanges.push(state),
+			() => {}
+		);
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('pauses on a code block and resumes with resumeFromBlock', () => {
+		engine.setSettings({ ...settings, enableRampUp: false, enableMicropause: false, wpm: 300 });
+		engine.loadText('Before\n```js\nconst x = 1;\n```\nAfter');
+		engine.play();
+
+		vi.advanceTimersByTime(300);
+
+		let last = stateChanges[stateChanges.length - 1]!;
+		expect(last.activeBlock).not.toBeNull();
+		expect(last.activeBlock!.type).toBe('code');
+		expect(last.isPlaying).toBe(false);
+
+		engine.resumeFromBlock();
+		last = stateChanges[stateChanges.length - 1]!;
+		expect(last.activeBlock).toBeNull();
+		expect(last.isPlaying).toBe(true);
+	});
+
+	it('stops a chunk at a block boundary when chunkSize > 1', () => {
+		engine.setSettings({ ...settings, chunkSize: 3, enableRampUp: false, enableMicropause: false, wpm: 300 });
+		engine.loadText('One two three\n```\ncode\n```\nfour five');
+		engine.play();
+
+		vi.advanceTimersByTime(300);
+
+		const last = stateChanges[stateChanges.length - 1]!;
+		expect(last.activeBlock).not.toBeNull();
+		expect(last.currentIndex).toBe(3);
+	});
+
+	it('skips blocks when the matching setting is disabled', () => {
+		engine.setSettings({
+			...settings,
+			pauseForCodeBlocks: false,
+			enableRampUp: false,
+			enableMicropause: false,
+			wpm: 300
+		});
+		engine.loadText('Before\n```js\ncode\n```\nAfter');
+		engine.play();
+
+		vi.advanceTimersByTime(1000);
+
+		expect(stateChanges.some((s) => s.activeBlock !== null)).toBe(false);
+		expect(stateChanges.some((s) => s.finished)).toBe(true);
+	});
+
+	it('shows a leading block when reading starts', () => {
+		engine.setSettings({ ...settings, enableRampUp: false, enableMicropause: false, wpm: 300 });
+		engine.loadText('```\ncode\n```\nIntro');
+		engine.play();
+
+		const last = stateChanges[stateChanges.length - 1]!;
+		expect(last.activeBlock).not.toBeNull();
+		expect(last.currentIndex).toBe(0);
+	});
+});
+
 describe('Visibility change auto-pause logic', () => {
 	it('should pause when document becomes hidden and resume on return', () => {
 		let wasPlayingBeforeBlur = false;

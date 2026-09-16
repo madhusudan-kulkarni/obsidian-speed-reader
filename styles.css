@@ -639,6 +639,86 @@
 }
 
 /* ==============================================
+   Blocks (code, math, tables)
+   ============================================== */
+
+.speed-reader-block {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.75rem;
+	width: 100%;
+	max-width: 100%;
+	text-align: left;
+	user-select: text;
+	cursor: default;
+}
+
+.speed-reader-block-label {
+	font-family: var(--font-ui);
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-faint);
+	align-self: center;
+}
+
+.speed-reader-block-content {
+	width: 100%;
+	max-height: 50vh;
+	overflow: auto;
+	padding: 0.75rem 1rem;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	font-family: var(--font-text);
+	font-size: 0.9rem;
+	color: var(--text-normal);
+}
+
+.speed-reader-block-content pre {
+	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.speed-reader-block-content code {
+	font-family: var(--font-monospace);
+}
+
+.speed-reader-block-content table {
+	width: 100%;
+}
+
+.speed-reader-resume-btn {
+	align-self: center;
+	padding: 0.4rem 1rem;
+	font-size: 0.9rem;
+	font-weight: 500;
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	border: none;
+	border-radius: var(--radius-m);
+	cursor: pointer;
+	transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.speed-reader-resume-btn:hover {
+	transform: scale(1.04);
+	opacity: 0.95;
+}
+
+.speed-reader-resume-btn:active {
+	transform: scale(0.96);
+}
+
+/* Hide the ORP guide line and triangle while a block is displayed. */
+.speed-reader-block-active .speed-reader-word-container::before,
+.speed-reader-block-active .speed-reader-word-container::after {
+	display: none;
+}
+
+/* ==============================================
    Responsive
    ============================================== */
 

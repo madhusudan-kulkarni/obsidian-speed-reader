@@ -15,6 +15,18 @@ export interface HeadingInfo {
 
 export type FontFamilyOption = 'default' | 'monospace' | 'sans-serif';
 
+export type BlockType = 'code' | 'math' | 'table';
+
+export interface ReadingBlock {
+	type: BlockType;
+	/** Raw markdown source used to render the block as-is (e.g. fenced code, $$...$$, table rows). */
+	content: string;
+	/** Code fence language, when known. */
+	language?: string;
+	/** Index of the first word read after this block; the block is displayed just before it. */
+	wordIndex: number;
+}
+
 export interface SpeedReaderSettings {
 	wpm: number;
 	chunkSize: number;
@@ -30,6 +42,9 @@ export interface SpeedReaderSettings {
 	enableMicropause: boolean;
 	micropauseIntensity: number;
 	enableRampUp: boolean;
+	pauseForCodeBlocks: boolean;
+	pauseForMathBlocks: boolean;
+	pauseForTableBlocks: boolean;
 }
 
 export interface ReaderState {
@@ -43,11 +58,13 @@ export interface ReaderState {
 	timeRemainingMs: number;
 	elapsedTimeMs: number;
 	currentHeading: HeadingInfo | null;
+	activeBlock: ReadingBlock | null;
 }
 
 export interface ParsedDocument {
 	words: WordData[];
 	headings: HeadingInfo[];
+	blocks: ReadingBlock[];
 	startWordIndex: number;
 }
 
@@ -65,5 +82,8 @@ export const DEFAULT_SETTINGS: SpeedReaderSettings = {
 	showStats: true,
 	enableMicropause: true,
 	micropauseIntensity: 1.5,
-	enableRampUp: true
+	enableRampUp: true,
+	pauseForCodeBlocks: true,
+	pauseForMathBlocks: true,
+	pauseForTableBlocks: true
 };
