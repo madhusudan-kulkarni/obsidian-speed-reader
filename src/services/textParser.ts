@@ -1,4 +1,5 @@
-import { HeadingInfo, ParsedDocument, WordData } from '../types';
+import { HeadingInfo, ParsedDocument, ReadingBlock, WordData } from '../types';
+import { extractBlocks, ExtractedBlock } from './blockParser';
 
 function calculateORP(word: string): number {
 	const len = word.length;
@@ -101,12 +102,19 @@ function stripLeadingPunctuation(word: string): { clean: string; leading: string
 	return { clean: word, leading: '' };
 }
 
-function parseWords(strippedText: string): WordData[] {
+function parseWords(strippedText: string, blockByPlaceholder: Map<string, ExtractedBlock>): WordData[] {
 	const words: WordData[] = [];
 	const tokens = tokenize(strippedText);
 
 	for (const token of tokens) {
 		const { raw, start } = token;
+
+		const block = blockByPlaceholder.get(raw);
+		if (block) {
+			block.wordIndex = words.length;
+			continue;
+		}
+
 		let displayWord = raw;
 		let punctuation = '';
 
@@ -190,15 +198,29 @@ function extractHeadings(text: string, words: WordData[]): HeadingInfo[] {
 }
 
 export function parseDocument(text: string, startOffset = 0): ParsedDocument {
-	const strippedText = stripMarkdown(text);
-	const words = parseWords(strippedText);
+	const { text: maskedText, blocks: extracted } = extractBlocks(text);
+	const strippedText = stripMarkdown(maskedText);
+
+	const blockByPlaceholder = new Map<string, ExtractedBlock>();
+	for (const block of extracted) {
+		blockByPlaceholder.set(block.placeholder, block);
+	}
+
+	const words = parseWords(strippedText, blockByPlaceholder);
 	const headings = extractHeadings(text, words);
+
+	const blocks: ReadingBlock[] = extracted
+		.map(({ placeholder: _placeholder, ...block }) => block)
+		.filter((block) => block.wordIndex >= 0)
+		.sort((a, b) => a.wordIndex - b.wordIndex);
+
 	const boundedStartOffset = Math.max(0, startOffset);
 	const startWordIndex = findWordIndexAtOffset(words, boundedStartOffset);
 
 	return {
 		words,
 		headings,
+		blocks,
 		startWordIndex
 	};
 }

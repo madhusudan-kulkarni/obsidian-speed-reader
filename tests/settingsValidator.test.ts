@@ -31,3 +31,19 @@ describe('validateSettings window width', () => {
 		expect(DEFAULT_SETTINGS.windowMaxWidth).toBe(780);
 	});
 });
+
+describe('validateSettings block settings', () => {
+	it('defaults block toggles to true', () => {
+		const s = validateSettings({});
+		expect(s.pauseForCodeBlocks).toBe(true);
+		expect(s.pauseForMathBlocks).toBe(true);
+		expect(s.pauseForTableBlocks).toBe(true);
+	});
+
+	it('clamps autoResumeSeconds to [0,60] and rounds', () => {
+		expect(validateSettings({ autoResumeSeconds: -5 }).autoResumeSeconds).toBe(0);
+		expect(validateSettings({ autoResumeSeconds: 0 }).autoResumeSeconds).toBe(0);
+		expect(validateSettings({ autoResumeSeconds: 999 }).autoResumeSeconds).toBe(60);
+		expect(validateSettings({ autoResumeSeconds: 7.4 }).autoResumeSeconds).toBe(7);
+	});
+});

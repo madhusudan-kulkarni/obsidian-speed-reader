@@ -197,6 +197,52 @@ export class SpeedReaderSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setDesc('Recommended range: 250-450 words per minute for regular reading, 450+ for scanning.');
+
+		new Setting(containerEl).setName('Blocks').setHeading();
+
+		new Setting(containerEl)
+			.setName('Pause on code blocks')
+			.setDesc('Stop and show fenced code blocks, then wait for you to continue.')
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.pauseForCodeBlocks)
+				.onChange(async (value) => {
+					this.plugin.settings.pauseForCodeBlocks = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Pause on math blocks')
+			.setDesc('Stop and show LaTeX equations ($$...$$), then wait for you to continue.')
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.pauseForMathBlocks)
+				.onChange(async (value) => {
+					this.plugin.settings.pauseForMathBlocks = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Pause on tables')
+			.setDesc('Stop and show Markdown tables, then wait for you to continue.')
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.pauseForTableBlocks)
+				.onChange(async (value) => {
+					this.plugin.settings.pauseForTableBlocks = value;
+					await this.plugin.saveSettings();
+				}));
+
+		this.addSliderWithInput(
+			containerEl,
+			'Auto-continue after',
+			'Seconds to wait before automatically resuming after a block (0 = wait for you to press a key or button).',
+			0,
+			60,
+			1,
+			this.plugin.settings.autoResumeSeconds,
+			async (value) => {
+				this.plugin.settings.autoResumeSeconds = value;
+				await this.plugin.saveSettings();
+			}
+		);
 	}
 
 	private addSliderWithInput(

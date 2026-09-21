@@ -1,4 +1,4 @@
-import { HeadingInfo, ReaderState, SpeedReaderSettings, WordData } from '../types';
+import { HeadingInfo, ReaderState, ReadingBlock, SpeedReaderSettings, WordData } from '../types';
 import { MicropauseService } from '../services/micropauseService';
 import { parseDocument } from '../services/textParser';
 
@@ -9,6 +9,7 @@ function clamp(value: number, min: number, max: number): number {
 export class RSVPEngine {
 	private words: WordData[] = [];
 	private headings: HeadingInfo[] = [];
+	private blocks: ReadingBlock[] = [];
 	private currentIndex = 0;
 	private isPlaying = false;
 	private timeoutId: number | null = null;
@@ -19,6 +20,9 @@ export class RSVPEngine {
 	private rampStep = 0;
 	private accumulatedElapsedMs = 0;
 	private playSessionStartTime: number | null = null;
+	private activeBlock: ReadingBlock | null = null;
+	private nextBlockIndex = 0;
+	private autoResumeTimeoutId: number | null = null;
 
 	constructor(
 		settings: SpeedReaderSettings,
@@ -35,7 +39,11 @@ export class RSVPEngine {
 		const parsed = parseDocument(text, startOffset);
 		this.words = parsed.words;
 		this.headings = parsed.headings;
+		this.blocks = parsed.blocks;
 		this.currentIndex = clamp(parsed.startWordIndex, 0, Math.max(this.words.length - 1, 0));
+		this.activeBlock = null;
+		this.cancelAutoResume();
+		this.recomputeBlockPointer();
 		this.rampStep = 0;
 		this.accumulatedElapsedMs = 0;
 		this.playSessionStartTime = null;
@@ -65,12 +73,15 @@ export class RSVPEngine {
 		if (this.currentIndex >= this.words.length) {
 			this.currentIndex = 0;
 			this.accumulatedElapsedMs = 0;
+			this.recomputeBlockPointer();
 		}
 
 		if (this.isPlaying) {
 			return;
 		}
 
+		this.activeBlock = null;
+		this.cancelAutoResume();
 		this.isPlaying = true;
 		this.rampStep = 0;
 		this.playSessionStartTime = Date.now();
@@ -82,6 +93,7 @@ export class RSVPEngine {
 			window.clearTimeout(this.timeoutId);
 			this.timeoutId = null;
 		}
+		this.cancelAutoResume();
 		if (this.isPlaying && this.playSessionStartTime !== null) {
 			this.accumulatedElapsedMs += Date.now() - this.playSessionStartTime;
 			this.playSessionStartTime = null;
@@ -102,7 +114,13 @@ export class RSVPEngine {
 	restart() {
 		this.accumulatedElapsedMs = 0;
 		this.playSessionStartTime = null;
+		this.activeBlock = null;
+		this.recomputeBlockPointer();
 		this.seekToIndex(0);
+		this.play();
+	}
+
+	resumeFromBlock() {
 		this.play();
 	}
 
@@ -140,6 +158,9 @@ export class RSVPEngine {
 	seekToIndex(index: number) {
 		const last = Math.max(this.words.length - 1, 0);
 		this.currentIndex = clamp(index, 0, last);
+		this.activeBlock = null;
+		this.cancelAutoResume();
+		this.recomputeBlockPointer();
 		this.rampStep = 0;
 		this.emitState(false);
 
@@ -183,6 +204,19 @@ export class RSVPEngine {
 			return;
 		}
 
+		const pendingBlock = this.getPendingBlock();
+		if (pendingBlock) {
+			if (pendingBlock.wordIndex <= this.currentIndex) {
+				if (this.shouldPauseFor(pendingBlock)) {
+					this.showBlock(pendingBlock);
+					return;
+				}
+				this.nextBlockIndex++;
+				this.runLoop();
+				return;
+			}
+		}
+
 		if (this.currentIndex >= this.words.length) {
 			if (this.playSessionStartTime !== null) {
 				this.accumulatedElapsedMs += Date.now() - this.playSessionStartTime;
@@ -196,13 +230,93 @@ export class RSVPEngine {
 
 		this.emitState(false);
 
+		const chunkEnd = this.getChunkEnd();
 		const delay = this.getCurrentDelay();
 		this.timeoutId = window.setTimeout(() => {
-			this.currentIndex += this.settings.chunkSize;
+			this.currentIndex = chunkEnd;
 			this.rampStep++;
 			this.timeoutId = null;
 			this.runLoop();
 		}, delay);
+	}
+
+	private getPendingBlock(): ReadingBlock | null {
+		return this.blocks[this.nextBlockIndex] ?? null;
+	}
+
+	private shouldPauseFor(block: ReadingBlock): boolean {
+		switch (block.type) {
+			case 'code':
+				return this.settings.pauseForCodeBlocks;
+			case 'math':
+				return this.settings.pauseForMathBlocks;
+			case 'table':
+				return this.settings.pauseForTableBlocks;
+			default:
+				return true;
+		}
+	}
+
+	private getChunkEnd(): number {
+		let end = Math.min(this.currentIndex + this.settings.chunkSize, this.words.length);
+		for (let i = this.nextBlockIndex; i < this.blocks.length; i++) {
+			const block = this.blocks[i];
+			if (!block) {
+				continue;
+			}
+			if (!this.shouldPauseFor(block)) {
+				continue;
+			}
+			if (block.wordIndex <= this.currentIndex) {
+				continue;
+			}
+			if (block.wordIndex < end) {
+				end = block.wordIndex;
+			}
+			break;
+		}
+		return end;
+	}
+
+	private showBlock(block: ReadingBlock) {
+		if (this.timeoutId !== null) {
+			window.clearTimeout(this.timeoutId);
+			this.timeoutId = null;
+		}
+		if (this.isPlaying && this.playSessionStartTime !== null) {
+			this.accumulatedElapsedMs += Date.now() - this.playSessionStartTime;
+			this.playSessionStartTime = null;
+		}
+		this.isPlaying = false;
+		this.rampStep = 0;
+		this.activeBlock = block;
+		this.nextBlockIndex++;
+		this.emitState(false);
+		this.scheduleAutoResume();
+	}
+
+	private scheduleAutoResume() {
+		this.cancelAutoResume();
+		if (this.settings.autoResumeSeconds > 0) {
+			this.autoResumeTimeoutId = window.setTimeout(() => {
+				this.autoResumeTimeoutId = null;
+				if (this.activeBlock) {
+					this.resumeFromBlock();
+				}
+			}, this.settings.autoResumeSeconds * 1000);
+		}
+	}
+
+	private cancelAutoResume() {
+		if (this.autoResumeTimeoutId !== null) {
+			window.clearTimeout(this.autoResumeTimeoutId);
+			this.autoResumeTimeoutId = null;
+		}
+	}
+
+	private recomputeBlockPointer() {
+		const found = this.blocks.findIndex((block) => block.wordIndex >= this.currentIndex);
+		this.nextBlockIndex = found === -1 ? this.blocks.length : found;
 	}
 
 	private getCurrentChunk(): WordData[] {
@@ -210,7 +324,7 @@ export class RSVPEngine {
 			return [];
 		}
 
-		const end = Math.min(this.currentIndex + this.settings.chunkSize, this.words.length);
+		const end = this.getChunkEnd();
 		return this.words.slice(this.currentIndex, end);
 	}
 
@@ -325,7 +439,8 @@ export class RSVPEngine {
 			currentWpm: this.settings.wpm,
 			timeRemainingMs: this.calculateRemainingMs(),
 			elapsedTimeMs: this.getElapsedTimeMs(),
-			currentHeading: this.getCurrentHeading()
+			currentHeading: this.getCurrentHeading(),
+			activeBlock: this.activeBlock
 		});
 	}
 }

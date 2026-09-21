@@ -112,10 +112,10 @@ export default class SpeedReaderPlugin extends Plugin {
 			return;
 		}
 
-		this.openSpeedReader(text, startOffset);
+		this.openSpeedReader(text, startOffset, view.file?.path ?? '');
 	}
 
-	private openSpeedReader(text: string, startOffset = 0) {
+	private openSpeedReader(text: string, startOffset = 0, sourcePath = '') {
 		const modal = new SpeedReaderModal(
 			this.app,
 			text,
@@ -124,7 +124,8 @@ export default class SpeedReaderPlugin extends Plugin {
 				this.settings = validateSettings(newSettings);
 				void this.saveSettings();
 			},
-			startOffset
+			startOffset,
+			sourcePath
 		);
 		modal.open();
 	}

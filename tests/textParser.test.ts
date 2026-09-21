@@ -350,13 +350,16 @@ describe('parseDocument', () => {
 		expect(doc.words.some(w => w.word === 'pitfalls')).toBe(true);
 	});
 
-	it('cleans markdown tables without table separators in word stream', () => {
+	it('extracts markdown tables as blocks, not words', () => {
 		const input = '| Header 1 | Header 2 |\n|---|---|\n| Cell A | Cell B |';
 		const doc = parseDocument(input);
 		expect(doc.words.some(w => w.word.includes('---') || w.raw.includes('---'))).toBe(false);
 		expect(doc.words.some(w => w.word === '|')).toBe(false);
-		expect(doc.words.some(w => w.word === 'Header')).toBe(true);
-		expect(doc.words.some(w => w.word === 'Cell')).toBe(true);
+		expect(doc.words.some(w => w.word === 'Header')).toBe(false);
+		expect(doc.words.some(w => w.word === 'Cell')).toBe(false);
+		expect(doc.blocks.length).toBe(1);
+		expect(doc.blocks[0]!.type).toBe('table');
+		expect(doc.blocks[0]!.content).toContain('Header 1');
 	});
 
 	it('strips HTML tags and preserves inner text', () => {

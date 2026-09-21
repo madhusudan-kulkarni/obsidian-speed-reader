@@ -1,6 +1,6 @@
-import { App, Modal, Notice, Platform } from 'obsidian';
+import { App, Component, MarkdownRenderer, Modal, Notice, Platform } from 'obsidian';
 import { RSVPEngine } from '../engine/rsvpEngine';
-import { HeadingInfo, ReaderState, SpeedReaderSettings, WordData } from '../types';
+import { HeadingInfo, ReaderState, ReadingBlock, SpeedReaderSettings, WordData } from '../types';
 import { fitWordFont, FIT_SAFETY, MIN_WORD_FONT_SIZE } from '../services/fontFitter';
 import { isRTL } from '../utils/rtl';
 
@@ -34,6 +34,7 @@ function headingLabel(heading: HeadingInfo): string {
 
 export class SpeedReaderModal extends Modal {
 	private readonly sourceText: string;
+	private readonly sourcePath: string;
 	private settings: SpeedReaderSettings;
 	private readonly onSettingsChange: (settings: SpeedReaderSettings) => void;
 	private readonly startOffset: number;
@@ -43,6 +44,8 @@ export class SpeedReaderModal extends Modal {
 	private wasPlayingBeforeBlur = false;
 	private boundVisibilityHandler: () => void;
 	private boundBlurHandler: () => void;
+	private blockComponent: Component | null = null;
+	private autoResumeCountdownId: number | null = null;
 
 	private ownerDoc!: Document;
 	private wordContainer!: HTMLElement;
@@ -67,10 +70,12 @@ export class SpeedReaderModal extends Modal {
 		text: string,
 		settings: SpeedReaderSettings,
 		onSettingsChange: (settings: SpeedReaderSettings) => void,
-		startOffset = 0
+		startOffset = 0,
+		sourcePath = ''
 	) {
 		super(app);
 		this.sourceText = text;
+		this.sourcePath = sourcePath;
 		this.settings = settings;
 		this.onSettingsChange = onSettingsChange;
 		this.startOffset = startOffset;
@@ -116,7 +121,7 @@ export class SpeedReaderModal extends Modal {
 		}
 		this.applyFontFamily();
 		this.wordContainer.addEventListener('click', (event) => {
-			if ((event.target as HTMLElement).closest('.speed-reader-restart-btn, .speed-reader-close-btn')) {
+			if ((event.target as HTMLElement).closest('.speed-reader-restart-btn, .speed-reader-close-btn, .speed-reader-resume-btn')) {
 				return;
 			}
 			this.engine.togglePlayPause();
@@ -156,6 +161,9 @@ export class SpeedReaderModal extends Modal {
 	onClose() {
 		this.resizeObserver?.disconnect();
 		this.resizeObserver = null;
+		this.blockComponent?.unload();
+		this.blockComponent = null;
+		this.clearBlockCountdown();
 		this.ownerDoc.removeEventListener('visibilitychange', this.boundVisibilityHandler);
 		this.ownerDoc.defaultView?.removeEventListener('blur', this.boundBlurHandler);
 		this.engine.pause();
@@ -177,6 +185,12 @@ export class SpeedReaderModal extends Modal {
 
 	private registerKeyboardHandlers() {
 		this.scope.register([], ' ', (event) => {
+			event.preventDefault();
+			this.engine.togglePlayPause();
+			return false;
+		});
+
+		this.scope.register([], 'Enter', (event) => {
 			event.preventDefault();
 			this.engine.togglePlayPause();
 			return false;
@@ -252,6 +266,9 @@ export class SpeedReaderModal extends Modal {
 
 		this.contentEl.addEventListener('keydown', (event) => {
 			if (event.key === ' ') {
+				event.preventDefault();
+				this.engine.togglePlayPause();
+			} else if (event.key === 'Enter') {
 				event.preventDefault();
 				this.engine.togglePlayPause();
 			} else if (event.key === 'r' || event.key === 'R') {
@@ -367,6 +384,10 @@ export class SpeedReaderModal extends Modal {
 		const state = this.state;
 		if (!state) return;
 
+		this.contentEl.toggleClass('speed-reader-block-active', !!state.activeBlock);
+		if (!state.activeBlock) {
+			this.clearBlockCountdown();
+		}
 		this.renderWord(state);
 		this.renderStats(state);
 		this.renderProgress(state);
@@ -377,6 +398,11 @@ export class SpeedReaderModal extends Modal {
 
 	private renderWord(state: ReaderState) {
 		this.wordContainer.empty();
+
+		if (state.activeBlock) {
+			this.renderBlock(state.activeBlock);
+			return;
+		}
 
 		if (state.totalWords === 0) {
 			this.wordContainer.setText('No text to display');
@@ -456,6 +482,60 @@ export class SpeedReaderModal extends Modal {
 		unit.createSpan({ cls: 'speed-reader-left', text: before });
 		unit.createSpan({ cls: 'speed-reader-orp', text: orp });
 		unit.createSpan({ cls: 'speed-reader-right', text: after });
+	}
+
+	private renderBlock(block: ReadingBlock) {
+		const blockEl = this.wordContainer.createDiv({ cls: 'speed-reader-block' });
+
+		const label = block.type === 'code' ? 'Code block'
+			: block.type === 'math' ? 'Equation'
+				: 'Table';
+		blockEl.createDiv({ cls: 'speed-reader-block-label', text: label });
+
+		const contentEl = blockEl.createDiv({ cls: 'speed-reader-block-content' });
+		this.renderBlockContent(block, contentEl);
+
+		const resumeBtn = blockEl.createEl('button', {
+			cls: 'speed-reader-resume-btn',
+			text: 'Continue reading'
+		});
+		resumeBtn.addEventListener('click', (event) => {
+			event.stopPropagation();
+			this.engine.resumeFromBlock();
+			this.refocusContent();
+		});
+
+		if (this.settings.autoResumeSeconds > 0) {
+			this.startBlockCountdown(blockEl);
+		}
+	}
+
+	private startBlockCountdown(blockEl: HTMLElement) {
+		const duration = this.settings.autoResumeSeconds;
+		const hint = blockEl.createSpan({ cls: 'speed-reader-block-hint' });
+		const deadline = Date.now() + duration * 1000;
+		this.clearBlockCountdown();
+		this.autoResumeCountdownId = window.setInterval(() => {
+			const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+			hint.setText(`Continues automatically in ${remaining}s`);
+			if (remaining <= 0) {
+				this.clearBlockCountdown();
+			}
+		}, 250);
+	}
+
+	private clearBlockCountdown() {
+		if (this.autoResumeCountdownId !== null) {
+			window.clearInterval(this.autoResumeCountdownId);
+			this.autoResumeCountdownId = null;
+		}
+	}
+
+	private renderBlockContent(block: ReadingBlock, container: HTMLElement) {
+		this.blockComponent?.unload();
+		this.blockComponent = new Component();
+		this.blockComponent.load();
+		void MarkdownRenderer.render(this.app, block.content, container, this.sourcePath, this.blockComponent);
 	}
 
 	private refreshMetrics() {
@@ -655,6 +735,10 @@ export class SpeedReaderModal extends Modal {
 
 	private renderControls() {
 		this.controlsEl.empty();
+		if (this.state?.activeBlock) {
+			this.createKeyHint('Space/Enter', 'continue');
+			return;
+		}
 		if (this.focusMode) {
 			this.controlsEl.createSpan({ text: 'Focus mode • ' });
 			this.createKeyHint('F', 'exit');
