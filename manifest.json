@@ -1,7 +1,7 @@
 {
 	"id": "speed-reader",
 	"name": "Speed Reader",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"minAppVersion": "0.15.0",
 	"description": "Read your notes faster, one word at a time.",
 	"author": "Madhusudan Kulkarni",
