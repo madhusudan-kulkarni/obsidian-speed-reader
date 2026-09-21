@@ -1,53 +1,45 @@
-name: Release Plugin
+name: Release
 
 on:
-    workflow_dispatch:
-    push:
-        tags:
-            - "*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.4.0)'
+        required: true
+        type: string
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
-    
-    # "Proven Solution": Explicitly request write access to create releases
     permissions:
       contents: write
-      id-token: write
-      attestations: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: 20
+          cache: npm
 
-      - name: Install Dependencies
-        run: npm ci
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
 
-      - name: Build Plugin
+      - name: Build
         run: npm run build
 
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: |
-            main.js
-            manifest.json
-            styles.css
+      - name: Bump version
+        run: npm version ${{ inputs.version }}
 
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
+      - name: Push version bump
+        run: |
+          git push origin master --follow-tags
+
+      - name: Create GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          draft: false
-          prerelease: false
-          files: |
-            main.js
-            manifest.json
-            styles.css
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ inputs.version }} \
+            --title "${{ inputs.version }}" \
+            --generate-notes \
+            main.js manifest.json styles.css
